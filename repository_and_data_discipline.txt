@@ -1,0 +1,25 @@
+Repository and data discipline
+
+Never deviate (unless mistakes are found):
+
+```
+wifi-csi-thesis/
+├── STATE.md          # rolling status: current milestone, next action, blockers, pinned versions
+├── RESEARCH.md       # frozen claim ladder and RQ wording (copy of Section 1)
+├── repository_and_data_discipline.txt # this file
+├── firmware/         # capture firmware (esp-csi based, pinned ESP-IDF version)
+├── tools/            # Python parsers, plotting, feature extraction, evaluation scripts
+├── data/             # raw session folders — append-only, never hand-edited
+│   └── 20261205_motion_A_win/
+│       ├── csi.csv           # raw CSI rows
+│       ├── session.md        # filled protocol template
+├── sessions/         # index of session protocol files
+├── results/          # generated tables and figures — nothing hand-drawn
+└── docs/             # scripted protocols, consent note, photos of the rig
+```
+
+**Session protocol template** — filled in before every recording, one file per session: date/time; condition (empty / motion / seated-still / lying-still); subject; distance node→person; placement ID; furniture state; microwave present (y/n); router model; board serial; firmware build hash; notes. Folder naming: `YYYYMMDD_<condition>_<placement>`. Raw CSVs are read-only after upload.
+
+**Labeling rules.** Motion/empty conditions use scripted in/out times logged with a phone stopwatch. Breathing sessions record 60–120 s of stillness with a phone camera on the chest; breaths are counted from the video afterwards and written into `session.md`. Family members participating get a one-page informal consent note (`docs/consent.md`) — cheap, and examiners expect it.
+
+**Domain-shift hygiene.** One variable changes per session. After any rig change (placement, furniture, Wi-Fi channel), re-record an empty baseline before collecting anything else.

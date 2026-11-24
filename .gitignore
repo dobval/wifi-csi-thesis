@@ -1,0 +1,36 @@
+# ---------------------------------------------------------------- ESP-IDF
+# Build output and generated component trees (rebuilt from source)
+build/
+managed_components/
+
+# Flashed/toolchain artifacts
+*.bin
+*.elf
+*.map
+*.hex
+*.lst
+
+# Per-machine project config. Contains Wi-Fi credentials and absolute paths.
+# sdkconfig.defaults IS tracked — it holds the non-secret build settings.
+sdkconfig
+sdkconfig.old
+sdkconfig.*.old
+sdkconfig.local
+
+# ---------------------------------------------------------------- Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ---------------------------------------------------------------- Editors / OS
+.vscode/
+.DS_Store
+*.swp
+*~
+
+# ---------------------------------------------------------------- Scratch
+*.tmp
+*.part

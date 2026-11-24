@@ -1,0 +1,11 @@
+# Normalise text files to LF, but never touch recorded data.
+* text=auto eol=lf
+
+# Raw CSI captures are append-only evidence. Git must not rewrite their bytes:
+# the ESP32 console emits CRLF, and any normalisation would silently alter data.
+*.csv -text
+*.bin binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
