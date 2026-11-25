@@ -151,6 +151,12 @@ Do not upgrade these mid-campaign; a toolchain change is a rig change (re-record
    on a scripted schedule (e.g. 60 s out / 60 s in, repeated), with a timestamped event log in
    the same clock domain as `local_timestamp`. Then windows are labelled by time, not by file,
    and the null comes from held-out time blocks of the *same* recording.
+   **Status: implemented** — `record_session.sh --label alternating --alternate 60 --cycles 30`
+   writes `schedule.csv` + `cues.txt` and picks the countdown so that the phone-timer block
+   boundaries are exactly the transitions. `tools/probe_alt.py` slices by the unwrapped board
+   clock, reports per-cycle paired differences, a block-level AUC with a permutation null, and
+   a within-recording null (odd vs even empty blocks). Validated on synthetic data only; not yet
+   run on hardware.
 3. Record ≥2 such recordings on ≥2 days before any classifier work.
 4. Port the example into `firmware/` (carry over `partitions.csv` + flash size 16 MB); record firmware
    build hash per session.

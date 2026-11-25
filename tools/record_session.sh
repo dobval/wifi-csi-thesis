@@ -36,7 +36,8 @@ PYBIN=""
 usage() { sed -n '2,20p' "$SELF" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 # ----------------------------------------------------------------- args
-LABEL=""; PLACEMENT="A"; DURATION=300; COUNTDOWN=15
+LABEL=""; PLACEMENT="A"; DURATION=300; COUNTDOWN=15; COUNTDOWN_GIVEN=0
+ALTERNATE=0; CYCLES=0; GUARD=10
 DIST_CM=""; HEIGHT_CM=""; SUBJECT=""; NOTES=""; PORT="/dev/ttyACM0"
 OUTDIR="$ROOT/data"; FOREGROUND=0; RESET=1; INNER_DIR=""
 MOUNT="taped"; CABLE="pc-end"
@@ -46,7 +47,10 @@ while [[ $# -gt 0 ]]; do
     --label)        LABEL="${2:?}"; shift 2 ;;
     --placement)    PLACEMENT="${2:?}"; shift 2 ;;
     --duration)     DURATION="${2:?}"; shift 2 ;;
-    --countdown)    COUNTDOWN="${2:?}"; shift 2 ;;
+    --countdown)    COUNTDOWN="${2:?}"; COUNTDOWN_GIVEN=1; shift 2 ;;
+    --alternate)    ALTERNATE="${2:?}"; shift 2 ;;
+    --cycles)       CYCLES="${2:?}"; shift 2 ;;
+    --guard)        GUARD="${2:?}"; shift 2 ;;
     --distance-cm)  DIST_CM="${2:?}"; shift 2 ;;
     --height-cm)    HEIGHT_CM="${2:?}"; shift 2 ;;
     --subject)      SUBJECT="${2:?}"; shift 2 ;;
@@ -139,11 +143,35 @@ fi
 # ----------------------------------------------------------------- outer mode
 [[ -n "$LABEL" ]] || { echo "--label is required" >&2; usage 1; }
 case "$LABEL" in
-  empty_room|person_in_zone_static|person_in_zone_moving|person_out_of_zone|occupied_uncontrolled) ;;
+  empty_room|person_in_zone_static|person_in_zone_moving|person_out_of_zone|occupied_uncontrolled|alternating) ;;
   *) echo "invalid --label '$LABEL'" >&2; usage 1 ;;
 esac
 [[ "$DURATION" =~ ^[0-9]+$ ]] || { echo "--duration must be an integer (0 = until stopped)" >&2; exit 1; }
 (( DURATION == 0 || DURATION >= 5 )) || { echo "--duration must be 0 or >= 5 s" >&2; exit 1; }
+
+if (( ALTERNATE > 0 )); then
+  [[ "$LABEL" == "alternating" ]] || {
+    echo "--alternate records both conditions in one file; use --label alternating" >&2; exit 1; }
+  [[ "$ALTERNATE" =~ ^[0-9]+$ ]] && (( ALTERNATE >= 20 )) || {
+    echo "--alternate must be >= 20 s" >&2; exit 1; }
+  [[ "$CYCLES" =~ ^[0-9]+$ ]] && (( CYCLES >= 1 )) || {
+    echo "--alternate needs --cycles N (N = empty+person pairs)" >&2; exit 1; }
+  [[ "$GUARD" =~ ^[0-9]+$ ]] || { echo "--guard must be an integer" >&2; exit 1; }
+  (( 2 * GUARD < ALTERNATE )) || {
+    echo "--guard ${GUARD}s leaves no usable data in a ${ALTERNATE}s block (need 2*guard < alternate)" >&2
+    exit 1; }
+  DURATION=$(( 2 * ALTERNATE * CYCLES ))
+  # The measurement starts ~5 s after the port opens (board boot). Pick the
+  # countdown so it starts at exactly ONE block length after launch: then the
+  # phone timer's block multiples are the transitions, with no mental arithmetic.
+  if (( COUNTDOWN_GIVEN == 0 )); then COUNTDOWN=$(( ALTERNATE - 5 )); fi
+  (( COUNTDOWN >= 10 )) || COUNTDOWN=10
+  # Phone-time offset of measurement start. Not assumed to be ALTERNATE: if the
+  # operator overrides --countdown the cue sheet must still be correct.
+  OFFSET=$(( COUNTDOWN + 5 ))
+elif (( CYCLES > 0 )); then
+  echo "--cycles has no effect without --alternate" >&2
+fi
 [[ -e "$PORT" ]] || { echo "port $PORT not found (board plugged in?)" >&2; exit 1; }
 find_python || exit 1
 
@@ -188,6 +216,9 @@ RESET="$RESET"
 MOUNT="$MOUNT"
 CABLE="$CABLE"
 COUNTDOWN="$COUNTDOWN"
+ALTERNATE="$ALTERNATE"
+CYCLES="$CYCLES"
+GUARD="$GUARD"
 EOF
 
 cat > "$DIR/session.md" <<EOF
@@ -217,13 +248,61 @@ cat > "$DIR/session.md" <<EOF
 <!-- Scripted entry/exit times, or why the label holds for the whole capture. -->
 EOF
 
+if (( ALTERNATE > 0 )); then
+  printf 'block,condition,t_start_s,t_end_s,guard_s\n' > "$DIR/schedule.csv"
+  {
+    echo "ALTERNATING SCHEDULE — ${CYCLES} cycles x ${ALTERNATE}s per block (${DURATION}s)"
+    echo
+    echo "Start the phone timer the instant you press Enter. The measurement begins"
+    echo "${COUNTDOWN}s + ~5s boot after that, i.e. at phone time ~${OFFSET}s, so:"
+    echo "  - block boundaries are phone readings $((OFFSET+ALTERNATE))s, $((OFFSET+2*ALTERNATE))s, ..."
+    echo "  - the first ${GUARD}s and last ${GUARD}s of each block are discarded as transition"
+    echo
+    printf '%-6s %-20s %s\n' "block" "condition" "phone timer"
+    for ((c=1; c<=CYCLES; c++)); do
+      eb=$(( (2*c-2)*ALTERNATE )); ee=$(( (2*c-1)*ALTERNATE ))
+      pb=$(( (2*c-1)*ALTERNATE )); pe=$(( 2*c*ALTERNATE ))
+      printf '%d,%s,%d,%d,%d\n' "$((2*c-1))" empty_room "$eb" "$ee" "$GUARD" >> "$DIR/schedule.csv"
+      printf '%d,%s,%d,%d,%d\n' "$((2*c))" person_out_of_zone "$pb" "$pe" "$GUARD" >> "$DIR/schedule.csv"
+      if (( c == 1 )); then
+        printf '%-6d %-20s %ss: stay out\n' "$((2*c-1))" empty_room "$((eb+OFFSET))"
+      else
+        printf '%-6d %-20s %ss: leave the room\n' "$((2*c-1))" empty_room "$((eb+OFFSET))"
+      fi
+      printf '%-6d %-20s %ss: walk in, seated by %ss\n' "$((2*c))" person_out_of_zone \
+             "$((pb+OFFSET-12))" "$((pb+OFFSET))"
+    done
+  } > "$DIR/cues.txt"
+
+  cat >> "$DIR/session.md" <<EOF
+
+## Alternating schedule
+
+One continuous capture, both conditions, so between-block drift is common-mode.
+Machine-readable boundaries in \`schedule.csv\` (seconds from the first CSI row);
+\`guard_s\` is discarded at each end of every block.
+
+\`\`\`
+$(cat "$DIR/cues.txt")
+\`\`\`
+EOF
+fi
+
 echo "session dir : $DIR"
 echo "label       : $LABEL"
 echo "duration    : ${DURATION}s"
+if (( ALTERNATE > 0 )); then
+  echo "schedule    : ${CYCLES} x (${ALTERNATE}s empty + ${ALTERNATE}s person), guard ${GUARD}s"
+  echo "cue sheet   : $DIR/cues.txt   (print it, or open it on the phone)"
+fi
 echo
 
-if (( COUNTDOWN > 0 )); then
+if (( ALTERNATE > 0 )); then
+  echo ">>> Start the phone timer NOW, then leave. Measurement begins at phone ~${OFFSET}s."
+else
   echo ">>> Leave the room / set the condition now."
+fi
+if (( COUNTDOWN > 0 )); then
   for ((i=COUNTDOWN; i>0; i--)); do
     printf '\r    recording starts in %2d s ' "$i"
     sleep 1
