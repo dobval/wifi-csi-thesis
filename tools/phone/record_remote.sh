@@ -32,7 +32,8 @@ ALTERNATE=90
 CYCLES=20
 DIST_CM=260
 HEIGHT_CM=88
-LEAD=12          # seconds before a person block to start walking in
+LEAD=""          # empty = derived from block length; see validation below
+LEAD_GIVEN=0
 BOOT=5           # board boot between "RECORDING" and the first CSI row
 DRY=0
 ALARM=1
@@ -48,7 +49,7 @@ while [[ $# -gt 0 ]]; do
     --cycles)       CYCLES="${2:?}"; shift 2 ;;
     --distance-cm)  DIST_CM="${2:?}"; shift 2 ;;
     --height-cm)    HEIGHT_CM="${2:?}"; shift 2 ;;
-    --lead)         LEAD="${2:?}"; shift 2 ;;
+    --lead)         LEAD="${2:?}"; LEAD_GIVEN=1; shift 2 ;;
     --boot)         BOOT="${2:?}"; shift 2 ;;
     --notes)        NOTES="${2:?}"; shift 2 ;;
     --dry-run)      DRY=1; shift ;;
@@ -58,9 +59,25 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ "$ALTERNATE" =~ ^[0-9]+$ ]] && (( ALTERNATE >= 3 )) || { echo "--alternate must be >= 3" >&2; exit 1; }
+# A real capture must satisfy the PC side too: record_session.sh needs
+# --alternate >= 21 so that 2 x guard (10 s default) leaves usable data.
+MIN_ALT=3
+(( DRY )) || MIN_ALT=21
+[[ "$ALTERNATE" =~ ^[0-9]+$ ]] && (( ALTERNATE >= MIN_ALT )) || {
+  echo "--alternate must be >= ${MIN_ALT}s$([[ $DRY == 1 ]] || echo ' (PC side needs > 2x guard)')" >&2
+  exit 1; }
 [[ "$CYCLES" =~ ^[0-9]+$ ]] && (( CYCLES >= 1 )) || { echo "--cycles must be >= 1" >&2; exit 1; }
-(( LEAD < ALTERNATE )) || { echo "--lead must be < --alternate" >&2; exit 1; }
+
+if (( LEAD_GIVEN )); then
+  [[ "$LEAD" =~ ^[0-9]+$ ]] && (( LEAD >= 1 && LEAD < ALTERNATE )) || {
+    echo "--lead ${LEAD}s must be at least 1s and less than --alternate ${ALTERNATE}s" >&2
+    exit 1; }
+else
+  # Walk-in warning gives away a third of a short block, capped at 12 s.
+  LEAD=$(( ALTERNATE / 3 ))
+  (( LEAD > 12 )) && LEAD=12
+  (( LEAD < 1 ))  && LEAD=1
+fi
 
 NOTE_ALT=$(( 2 * ALTERNATE * CYCLES ))
 LOG="${TMPDIR:-/tmp}/csi_remote_$$.log"
