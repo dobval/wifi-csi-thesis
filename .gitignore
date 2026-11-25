@@ -31,6 +31,19 @@ venv/
 *.swp
 *~
 
-# ---------------------------------------------------------------- Scratch
-*.tmp
-*.part
+# ---------------------------------------------------------------- Raw captures
+# Raw CSI logs are ~150 MB per hour (960 MiB for the 6h23m soak). Never commit
+# them to plain git: 58 GB of free disk is fine, a 1 GB-committing history is not.
+# Keep raw captures on disk + backup, and commit instead:
+#   data/<session>/session.md      (protocol + metadata)
+#   data/<session>/manifest.sha256 (integrity proof)
+# To version raw data properly, install git-lfs, un-ignore the patterns below,
+# and run: git lfs track "data/**/*.csv" "data/**/*.log"
+data/**/*.csv
+data/**/*.log
+results/**/*.log
+
+# ...but the small alignment sidecar is metadata, not raw capture: keep it so a
+# session can be re-aligned to wall-clock without the 13 MB payload.
+!data/**/*_clock.csv
+
