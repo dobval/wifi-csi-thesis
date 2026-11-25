@@ -157,6 +157,10 @@ Do not upgrade these mid-campaign; a toolchain change is a rig change (re-record
    clock, reports per-cycle paired differences, a block-level AUC with a permutation null, and
    a within-recording null (odd vs even empty blocks). Validated on synthetic data only; not yet
    run on hardware.
+   **Phone cueing:** `tools/phone/record_remote.sh` (Termux) SSHes the launch command and then
+   cues the blocks with vibration / spoken instruction / torch flash. It anchors the schedule to
+   the PC's `RECORDING` line rather than to the SSH call, so SSH latency and boot do not shift
+   the block boundaries. Dry-run tested; not yet used on a phone.
 3. Record ≥2 such recordings on ≥2 days before any classifier work.
 4. Port the example into `firmware/` (carry over `partitions.csv` + flash size 16 MB); record firmware
    build hash per session.
