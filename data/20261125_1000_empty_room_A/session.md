@@ -1,0 +1,72 @@
+# 20261125_1000_empty_room_A
+
+| Field | Value |
+|---|---|
+| Started (UTC) | 2026-11-25T08:00:58Z |
+| Label | `empty_room` |
+| Placement | `A` |
+| Duration requested | 300 s |
+| Node → AP distance | 260 cm |
+| Node height (floor) | 88 cm |
+| Subject | _ |
+| Rig | ESP32-S3-DevKitC-1 N16R8, on-module PCB antenna |
+| Firmware | esp-csi `8633d67` |
+| Console | 921600 baud, CH343 → `/dev/ttyACM0` |
+| Operator | operator@workstation |
+
+**Notes:** assuming the command starts >10 seconds after executing it (time for people to walk out)
+
+## Occupancy timeline
+
+<!-- Scripted entry/exit times, or why the label holds for the whole capture. -->
+
+## Capture result
+
+```
+{
+  "port": "/dev/ttyACM0",
+  "baud": 921600,
+  "out": "<repo>/data/20261125_1000_empty_room_A/csi.csv",
+  "started_unix_ns": 1795593673981435329,
+  "stopped_unix_ns": 1795593974085659047,
+  "elapsed_s": 300.104,
+  "bytes": 13107232,
+  "total_lines": 29770,
+  "csi_rows": 29659,
+  "rows_per_s": 98.829,
+  "malformed_csi_rows": 0,
+  "non_csi_lines": 111,
+  "non_csi_samples": [
+    "6,0,245642429,0,83,1,128,0,\"[0,0,0,-18,0,-19,0,-16,0,-13,0,-10,0,-6,0,-3,0,0,1,2,3,5,4,8,5,9,7,11,8,12,9,13,9,12,9,12,9,11,8,10,7,9,5,7,2,5,0,3,-1,0,-4,0,-6,-2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,ESP-ROM:",
+    "Build:Mar 27 2021",
+    "rst:0x15 (USB_UART_CHIP_RESET),boot:0x8 (SPI_FAST_FLASH_BOOT)",
+    "Saved PC:0x40041a79",
+    "SPIWP:0xee",
+    "mode:DIO, clock div:1",
+    "load:0x3fce2810,len:0x1828",
+    "load:0x403c8700,len:0x4",
+    "load:0x403c8704,len:0xcf8",
+    "load:0x403cb700,len:0x2ed0",
+    "entry 0x403c891c",
+    "\u001b[0;32mI (26) boot: ESP-IDF v5.3.6 2nd stage bootloader\u001b[0m",
+    "\u001b[0;32mI (27) boot: compile time Nov 24 2026 12:35:25\u001b[0m",
+    "\u001b[0;32mI (27) boot: Multicore bootloader\u001b[0m",
+    "\u001b[0;32mI (27) boot: chip revision: v0.2\u001b[0m",
+    "\u001b[0;32mI (28) boot: efuse block revision: v1.4\u001b[0m",
+    "\u001b[0;32mI (28) boot.esp32s3: Boot SPI Speed : 80MHz\u001b[0m",
+    "\u001b[0;32mI (29) boot.esp32s3: SPI Mode       : DIO\u001b[0m",
+    "\u001b[0;32mI (29) boot.esp32s3: SPI Flash Size : 16MB\u001b[0m",
+    "\u001b[0;32mI (30) boot: Enabling RNG early entropy source...\u001b[0m"
+  ],
+  "first_seq": "0",
+  "last_seq": "29658",
+  "channels": {
+    "6": 29659
+  },
+  "max_interrow_gap_ms": 4606.13,
+  "last_board_local_timestamp_us": "300247452"
+}```
+
+- finished (UTC): 2026-11-25T08:06:14Z
+- capture worker exit code: 0
+- AP BSSID observed: ap_1
