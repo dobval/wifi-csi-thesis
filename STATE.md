@@ -154,8 +154,12 @@ Do not upgrade these mid-campaign; a toolchain change is a rig change (re-record
   Android's process killer, and it cannot be trapped, so the PC capture is left running
   unguided. Cause: `wait_until` forked 16 processes per second (`date`, two `awk`, `sleep`
   every 0.25 s) — ~19 000 children over a 20 min run. Rewritten to use bash's
-  `EPOCHREALTIME` and integer microseconds with one `sleep` per second. Also: set Termux
-  to Battery → Unrestricted and keep it in the foreground.
+  `EPOCHREALTIME` and integer microseconds with one `sleep` per second.
+  **That was not the cause.** With battery unrestricted and the fork storm fixed it still died
+  at block 4. The real cause: `alarm()` backgrounded up to five jobs per cue (TTS, two
+  vibrations, a torch subshell, a toast), twice per block, so ~32 concurrent children accumulated
+  and Android's phantom-process killer SIGKILLed Termux. `alarm()` is now serial; nothing in the
+  cue path runs in the background.
 - **`ser.close()` can block in the kernel** (`wchan tty_wait_until_sent`) when a capture is
   stopped mid-stream on the CH343. Observed 2026-11-26: the worker stopped reading but never
   exited, holding the capture lock. Mitigated: `csi_stats.json` is now written *before* the

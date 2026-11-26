@@ -135,22 +135,27 @@ alarm() {
   local kind="$1" text="$2"
   (( ALARM )) || return 0
   log "cue $kind: $text"
+  # SERIAL on purpose. Android limits concurrent child processes per app
+  # (phantom-process killer, ~32). This used to background up to five jobs per
+  # cue, twice per block, so the count crossed the limit around block 4 and the
+  # whole Termux process was SIGKILLed. Nothing here may run in the background.
   if have termux-tts-speak; then
-    termux-tts-speak -r 0.60 "$text" >/dev/null 2>&1 &
+    termux-tts-speak -r 0.60 "$text" >/dev/null 2>&1 || true
   fi
   if have termux-vibrate; then
     if [[ "$kind" == URGENT ]]; then
-      termux-vibrate -f -d 700 >/dev/null 2>&1 &
-      ( sleep 0.35; termux-vibrate -f -d 300 >/dev/null 2>&1 ) &
+      termux-vibrate -f -d 700 >/dev/null 2>&1 || true
     else
-      termux-vibrate -d 200 >/dev/null 2>&1 &
+      termux-vibrate -d 200 >/dev/null 2>&1 || true
     fi
   fi
   if [[ "$kind" == URGENT ]] && have termux-torch; then
-    ( termux-torch on >/dev/null 2>&1; sleep 0.25; termux-torch off >/dev/null 2>&1 ) &
+    termux-torch on >/dev/null 2>&1 || true
+    sleep 0.2
+    termux-torch off >/dev/null 2>&1 || true
   fi
   if have termux-toast; then
-    termux-toast -s "$text" >/dev/null 2>&1 &
+    termux-toast -s "$text" >/dev/null 2>&1 || true
   fi
   printf '\a'
 }
