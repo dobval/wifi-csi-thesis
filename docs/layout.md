@@ -53,20 +53,20 @@ scale factor can rescue that, so `render_plan.py` reports plan units only.
 
 ## What is fixed, and what is not
 
-Fixed, so they cannot drift mid-session:
+Fixed, so nothing drifts mid-session:
 
 - the **board and its USB cable** are taped down
-- **P1 is marked** on the floor
+- **P1 is marked** on the floor — subject **stands** there
+- **P3 is marked** on the floor — subject **sits** there
 
 Not fixed:
 
-- there is no taped *zone boundary* — the 60 cm strip is a conceptual region, and
+- there is no taped *zone boundary*; the 60 cm strip is a conceptual region and
   only matters for the moving condition
-- P3 is not reported as marked; measure it and record the offset
 
-Because P1 is marked, the in-zone condition is reproducible — **provided the mark
-is actually used**: stand with the mark between your feet, not merely near it.
-A 30 cm error is the size of the Fresnel radius, i.e. a different condition.
+Both marks make their conditions reproducible, **provided the marks are used**:
+stand with P1 between your feet, sit centred on P3. A 30 cm error is the size of
+the Fresnel radius, i.e. a different condition.
 
 ## Positions
 
@@ -77,7 +77,7 @@ All distances from a tape measure, never from the plan.
 | **Node** | 260 cm from the AP, 88 cm high, board and cable taped | already done |
 | **AP** | 88 cm high | fixed |
 | **P1** | mid-point of the node–AP line: **130 cm from each end**, on the line; **marked on the floor**, subject **stands** | use the existing mark |
-| **P3** | far side of the room, **at least 1.5 m off** the node–AP line | not marked; measure the perpendicular offset and write it down |
+| **P3** | far side of the room, **at least 1.5 m off** the node–AP line; **marked on the floor**, subject **sits** | use the existing mark |
 | **zone** | conceptual: 60 cm wide strip along the line, 40 cm short of each end | only needed for the moving condition |
 
 Set P1 by running a string or tape from the node to the AP and measuring 130 cm
@@ -158,8 +158,8 @@ The cue script announces every transition. Beyond that:
 
 - [ ] AP↔node taped at **260 cm**, both antennas 88 cm
 - [ ] node and cable taped, cable broken only at the PC end
-- [ ] the P1 floor mark is used, not approximated (standing, mark between the feet)
-- [ ] P3 offset measured and written down
+- [ ] the P1 mark is actually used (standing, mark between the feet)
+- [ ] the P3 mark is actually used (seated, centred on it)
 - [ ] posture recorded: P1 is **standing**, P3 is **seated** (do not compare the
       two conditions directly — posture is a confound for that comparison)
 - [ ] nobody else in the building who might walk past
