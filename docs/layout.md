@@ -51,21 +51,22 @@ proportional", not to scale.
 units between them is the gap between two labels, not between two objects. No
 scale factor can rescue that, so `render_plan.py` reports plan units only.
 
-## What "taped" means here
+## What is fixed, and what is not
 
-The **board and its USB cable** are taped down, so the node's position cannot
-drift mid-session. That is all.
+Fixed, so they cannot drift mid-session:
 
-There is **no taped zone on the floor**, and P1 is not physically marked.
-Consequence: nothing currently fixes where the subject sits. Between sessions the
-chair can move by tens of centimetres, which is comparable to the Fresnel radius
-and would quietly change the condition.
+- the **board and its USB cable** are taped down
+- **P1 is marked** on the floor
 
-Cheapest fix, in order of preference:
+Not fixed:
 
-1. photograph the chair and its distance from two walls, every session
-2. a single small mark (tape, a coin) at P1 and P3 — one mark each, not a zone
-3. nothing — then accept that P1 is reproducible only to ±20 cm and say so
+- there is no taped *zone boundary* — the 60 cm strip is a conceptual region, and
+  only matters for the moving condition
+- P3 is not reported as marked; measure it and record the offset
+
+Because P1 is marked, the in-zone condition is reproducible — **provided the mark
+is actually used**: stand with the mark between your feet, not merely near it.
+A 30 cm error is the size of the Fresnel radius, i.e. a different condition.
 
 ## Positions
 
@@ -75,8 +76,8 @@ All distances from a tape measure, never from the plan.
 |---|---|---|
 | **Node** | 260 cm from the AP, 88 cm high, board and cable taped | already done |
 | **AP** | 88 cm high | fixed |
-| **P1** | mid-point of the node–AP line: **130 cm from each end**, on the line | tape 130 cm out from the node *along the string*, mark it |
-| **P3** | far side of the room, **at least 1.5 m off** the node–AP line | eyeball from the wall, then measure the perpendicular offset |
+| **P1** | mid-point of the node–AP line: **130 cm from each end**, on the line; **marked on the floor**, subject **stands** | use the existing mark |
+| **P3** | far side of the room, **at least 1.5 m off** the node–AP line | not marked; measure the perpendicular offset and write it down |
 | **zone** | conceptual: 60 cm wide strip along the line, 40 cm short of each end | only needed for the moving condition |
 
 Set P1 by running a string or tape from the node to the AP and measuring 130 cm
@@ -118,13 +119,14 @@ The cue script announces every transition. Beyond that:
 - no pets, no fans switched on or off mid-run
 
 **`person_in_zone_static`:**
-- seated at P1, within 20 cm of the node–AP line
-- feet flat, back against the chair, same chair and orientation every session
+- **standing** at P1 with the floor mark between your feet — there is no chair
+- weight even, arms relaxed, feet planted and unmoving
+- do not lean on anything, sway, shift feet, or put a hand on a wall or table
 - breathe normally; breathing is the L2 signal, not noise
-- do not fidget, check the phone, shift weight or talk
+- do not fidget, check the phone or talk
 
 **`person_in_zone_moving`:**
-- steady pace along the strip, ~1 m/s
+- steady pace along the node–AP line, past P1, ~1 m/s
 - same direction each pass, or alternate and note it
 - do not stop inside the zone or turn sharply at the ends
 
@@ -135,7 +137,7 @@ The cue script announces every transition. Beyond that:
 ## Things that silently ruin a session
 
 - moving the node, the cable or the router after the baseline — all shift the channel
-- a chair left in the zone during `empty_room`
+- furniture moved into the zone during `empty_room`
 - someone walking past the door during any block
 - phone resting on the node (metal, next to the antenna)
 - changing posture mid-block — the largest within-block variance source
@@ -156,8 +158,9 @@ The cue script announces every transition. Beyond that:
 
 - [ ] AP↔node taped at **260 cm**, both antennas 88 cm
 - [ ] node and cable taped, cable broken only at the PC end
-- [ ] P1 established by tape at 130 cm from the node, within 20 cm of the line
-- [ ] P1 reproducible across sessions (photo or single mark)
-- [ ] chair in position for P1 and P3
+- [ ] the P1 floor mark is used, not approximated (standing, mark between the feet)
+- [ ] P3 offset measured and written down
+- [ ] posture recorded: P1 is **standing**, P3 is **seated** (do not compare the
+      two conditions directly — posture is a confound for that comparison)
 - [ ] nobody else in the building who might walk past
 - [ ] `~/rec.sh --status` on the phone says `(none), (none), free`

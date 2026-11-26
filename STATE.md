@@ -17,6 +17,7 @@ as empty vs person. The unit of analysis must move inside a single recording. Se
 | Both antennas height | **88 cm** above floor |
 | Node | bare board, on-module PCB antenna, non-metal surface |
 | Mount | **taped down** — position committed for the whole soak |
+| In-zone position (P1) | **marked on the floor**, mid-point of the node–AP line; subject **stands** there (no chair) |
 | Cable handling | USB broken **at the PC end only**, never at the board |
 | Measured RSSI at this geometry | mean **−38.2 dBm** (range −32 … −52) |
 | Room | 760 × 520 cm, node against the left wall in front of a 324 cm window, AP against the top wall |
