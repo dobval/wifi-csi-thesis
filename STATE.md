@@ -196,7 +196,9 @@ Do not upgrade these mid-campaign; a toolchain change is a rig change (re-record
    a within-recording null (odd vs even empty blocks). Validated on synthetic data only; not yet
    run on hardware.
    **Phone cueing:** `tools/phone/record_remote.sh` (Termux) SSHes the launch command and then
-   cues the blocks with vibration / spoken instruction / torch flash. It anchors the schedule to
+   cues the blocks with a full-screen terminal display (block number, what to do, countdown,
+   progress bar) and the ASCII bell. No Termux:API, so no vibration/TTS/torch: keep the phone in
+   hand with the screen on. It anchors the schedule to
    the PC's `RECORDING` line rather than to the SSH call, so SSH latency and boot do not shift
    the block boundaries. Dry-run tested; not yet used on a phone.
    **Conditions:** both scripts take `--condition-a` / `--condition-b` (default

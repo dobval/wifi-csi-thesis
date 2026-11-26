@@ -56,7 +56,9 @@ Three fixes came out of it (`tools/phone/record_remote.sh`):
 
 Running the cue loop inside phone-side `tmux` protects against the *terminal*
 closing. It does not protect against Android killing the app; that needs battery
-optimisation disabled for Termux, plus `termux-wake-lock`.
+optimisation disabled for Termux. The later SIGKILLs were caused by `alarm()`
+backgrounding up to five jobs per cue and crossing Android's concurrent-child
+limit; the cue loop is now terminal-only and forks once per second.
 
 ## Next
 
