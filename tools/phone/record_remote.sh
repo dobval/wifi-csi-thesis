@@ -109,7 +109,19 @@ LOG="${TMPDIR:-/tmp}/csi_remote_$$.log"
 
 # ------------------------------------------------------------------ helpers
 have() { command -v "$1" >/dev/null 2>&1; }
-now()  { date +%s.%N; }
+# Time without forking. Android 12+ kills Termux when a long-running loop spawns
+# thousands of short-lived children, so nothing inside a loop may call date, awk,
+# grep, tail or seq. Bash 5 exposes EPOCHREALTIME, so the clock is a builtin.
+now_us() {
+  if [[ -n ${EPOCHREALTIME:-} ]]; then
+    local t=$EPOCHREALTIME frac
+    frac=${t#*.}
+    while (( ${#frac} < 6 )); do frac+="0"; done
+    REPLY=$(( ${t%.*} * 1000000 + 10#${frac} ))
+  else
+    REPLY=$(date +%s%6N)
+  fi
+}
 
 banner() {
   clear 2>/dev/null || printf '\n'
@@ -154,18 +166,19 @@ cond_text() {
   esac
 }
 
-wait_until() {
-  local target="$1" label="$2" rem
+wait_until_us() {
+  local target=$1 label=$2 rem
   while :; do
-    rem=$(awk -v t="$target" -v n="$(now)" 'BEGIN{ printf "%.1f", t-n }')
-    awk -v r="$rem" 'BEGIN{ exit !(r <= 0.05) }' && return 0
-    printf '\r  %-34s in %6.0fs ' "$label" "$rem"
-    sleep 0.25
+    now_us
+    rem=$(( target - REPLY ))
+    (( rem <= 0 )) && return 0
+    printf '\r  %-34s in %5d s ' "$label" $(( (rem + 999999) / 1000000 ))
+    sleep 1
   done
 }
 
 # at OFFSET — absolute epoch time for an offset from the measurement anchor
-at() { awk -v t="$T0" -v o="$1" 'BEGIN{ printf "%.3f", t+o }'; }
+
 
 # ------------------------------------------------------------------ preflight
 if (( ! DRY )); then
@@ -251,7 +264,7 @@ if (( DRY )); then
   echo "  remote command would be:"
   echo "    ssh $HOST '$remote'"
   : > "$LOG"
-  T0=$(awk -v n="$(now)" 'BEGIN{ printf "%.3f", n+4 }')
+  now_us; T0_US=$(( REPLY + 4000000 ))
 else
   echo
   echo "  launching on the PC..."
@@ -263,15 +276,17 @@ else
   # boot (~90 s), so echo its own progress line back or this looks like a hang.
   trap 'printf "\n"; echo "cue loop interrupted — the PC capture will be stopped so it is not orphaned"; log "INT received"; exit 130' INT
   found=0; locked=0
-  t_wait=$(now)
-  for _ in $(seq 1 600); do
-    if grep -q 'RECORDING' "$LOG" 2>/dev/null; then found=1; break; fi
-    if grep -q 'already running' "$LOG" 2>/dev/null; then locked=1; break; fi
+  now_us; t_wait_us=$REPLY
+  for ((_i = 0; _i < 200; _i++)); do
+    _log=""
+    [[ -r "$LOG" ]] && _log=$(<"$LOG")
+    if [[ $_log == *RECORDING* ]]; then found=1; break; fi
+    if [[ $_log == *"already running"* ]]; then locked=1; break; fi
     if ! kill -0 "$SSH_PID" 2>/dev/null; then break; fi
-    tail_msg=$(tr '\r' '\n' < "$LOG" 2>/dev/null | grep -v '^[[:space:]]*$' | tail -1 | cut -c1-52)
-    el=$(awk -v n="$(now)" -v s="$t_wait" 'BEGIN{printf "%d", n-s}')
-    printf '\r  %3ss  %-52s' "$el" "${tail_msg:-contacting the PC}"
-    sleep 0.25
+    _last=${_log##*$'\r'}
+    now_us
+    printf '\r  %3ds  %-52s' "$(( (REPLY - t_wait_us) / 1000000 ))" "${_last:0:52}"
+    sleep 1
   done
   printf '\r%70s\r' ''
 
@@ -291,7 +306,7 @@ else
 
   # Anchor: the PC prints RECORDING just before opening the port; the first CSI
   # row follows after the board boots.
-  T0=$(awk -v n="$(now)" -v b="$BOOT" 'BEGIN{ printf "%.3f", n+b }')
+  now_us; T0_US=$(( REPLY + BOOT * 1000000 ))
   CAPTURE_LIVE=1
   log "measurement anchor set"
   echo
@@ -320,17 +335,17 @@ for ((k = 1; k <= 2 * CYCLES; k++)); do
   if (( k % 2 == 1 )); then cond="$COND_A"; txt="$TXT_A"; else cond="$COND_B"; txt="$TXT_B"; fi
 
   if (( k > 1 )); then
-    wait_until "$(at $((bstart - LEAD)))" "block $k move"
+    wait_until_us $(( T0_US + (bstart - LEAD) * 1000000 )) "block $k move"
     alarm URGENT "Move now. ${txt}."
     banner "MOVE NOW — ${cond}" "block $k of $((2*CYCLES)) — ${txt}" \
            "you have ${LEAD}s to get there"
-    wait_until "$(at "$bstart")" "block $k in place"
+    wait_until_us $(( T0_US + bstart * 1000000 )) "block $k in place"
     alarm SOFT "In place. ${cond}."
     banner "IN PLACE — ${cond}" "block $k of $((2*CYCLES)) — hold this for ${ALTERNATE}s"
   fi
 done
 
-wait_until "$(awk -v t="$T0" -v o="$NOTE_ALT" 'BEGIN{printf "%.3f", t+o}')" "capture ends"
+wait_until_us $(( T0_US + NOTE_ALT * 1000000 )) "capture ends"
 alarm URGENT "Capture complete. You can return."
 CAPTURE_LIVE=0
 banner "DONE" "capture finished — you can go back"

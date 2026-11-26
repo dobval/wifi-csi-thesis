@@ -150,6 +150,12 @@ Do not upgrade these mid-campaign; a toolchain change is a rig change (re-record
   (a 1 GB soak in git history is irreversible). The session dir carries `session.md` +
   `manifest.sha256`; raw files live on disk + external backup. Install `git-lfs` if raw data
   ever needs to be versioned.
+- **The phone cue loop was SIGKILLed twice, both times around block 4.** `signal 9` is
+  Android's process killer, and it cannot be trapped, so the PC capture is left running
+  unguided. Cause: `wait_until` forked 16 processes per second (`date`, two `awk`, `sleep`
+  every 0.25 s) — ~19 000 children over a 20 min run. Rewritten to use bash's
+  `EPOCHREALTIME` and integer microseconds with one `sleep` per second. Also: set Termux
+  to Battery → Unrestricted and keep it in the foreground.
 - **`ser.close()` can block in the kernel** (`wchan tty_wait_until_sent`) when a capture is
   stopped mid-stream on the CH343. Observed 2026-11-26: the worker stopped reading but never
   exited, holding the capture lock. Mitigated: `csi_stats.json` is now written *before* the
