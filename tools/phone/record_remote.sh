@@ -37,6 +37,9 @@
 # started, 4 the PC is already running a capture.
 
 set -uo pipefail
+# awk/printf must emit a decimal POINT: this machine's LC_NUMERIC uses a comma,
+# which makes `printf %f "9,7"` fail and every countdown print an error.
+export LC_ALL=C
 
 HOST="${CSI_HOST:-pc}"
 REPO="${CSI_REPO:-~/Documents/UNI/BEng_Project/wifi-csi-thesis}"
@@ -51,6 +54,8 @@ DRY=0
 ALARM=1
 MODE=run
 NOTES="phone-cued alternating block"
+COND_A="empty_room"
+COND_B="person_in_zone_static"
 
 usage() {
   awk 'NR>1 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "$0"
@@ -70,6 +75,8 @@ while [[ $# -gt 0 ]]; do
     --lead)         LEAD="${2:?}"; LEAD_GIVEN=1; shift 2 ;;
     --boot)         BOOT="${2:?}"; shift 2 ;;
     --notes)        NOTES="${2:?}"; shift 2 ;;
+    --condition-a)  COND_A="${2:?}"; shift 2 ;;
+    --condition-b)  COND_B="${2:?}"; shift 2 ;;
     --dry-run)      DRY=1; shift ;;
     --no-alarm)     ALARM=0; shift ;;
     -h|--help)      usage 0 ;;
@@ -136,7 +143,17 @@ alarm() {
   printf '\a'
 }
 
-# wait_until TARGET "label" — 1 Hz countdown to an absolute epoch time
+# Human instruction for a condition, matching docs/layout.md and record_session.sh.
+cond_text() {
+  case "$1" in
+    empty_room)            echo "out of the room, door closed" ;;
+    person_in_zone_static) echo "sit at P1, on the AP-node line, stay still" ;;
+    person_in_zone_moving) echo "walk slowly along the taped zone" ;;
+    person_out_of_zone)    echo "sit at P3, far corner, stay still" ;;
+    *)                     echo "follow condition $1" ;;
+  esac
+}
+
 wait_until() {
   local target="$1" label="$2" rem
   while :; do
@@ -146,6 +163,9 @@ wait_until() {
     sleep 0.25
   done
 }
+
+# at OFFSET — absolute epoch time for an offset from the measurement anchor
+at() { awk -v t="$T0" -v o="$1" 'BEGIN{ printf "%.3f", t+o }'; }
 
 # ------------------------------------------------------------------ preflight
 if (( ! DRY )); then
@@ -217,6 +237,7 @@ else
   remote="cd $(printf %q "$REPO") && ./tools/record_session.sh"
 fi
 remote+=" --label alternating --alternate $ALTERNATE --cycles $CYCLES"
+remote+=" --condition-a $COND_A --condition-b $COND_B"
 remote+=" --distance-cm $DIST_CM --height-cm $HEIGHT_CM"
 remote+=" --notes $(printf %q "$NOTES")"
 
@@ -278,34 +299,34 @@ else
 fi
 
 # ------------------------------------------------------------------ schedule
+# Both conditions move the body, so every transition gets a pre-cue: a person
+# block needs time to walk to P1, an empty block needs time to leave the room.
+TXT_A=$(cond_text "$COND_A")
+TXT_B=$(cond_text "$COND_B")
+
+banner "WHAT TO DO" \
+       "block 1-${CYCLES}: ${COND_A} — ${TXT_A}" \
+       "each cycle:    ${COND_B} — ${TXT_B}" \
+       "move on the cue, be in place by the block start"
+
 if (( ! DRY )); then
-  alarm URGENT "Measurement starting. Stay out of the room."
+  alarm URGENT "Measurement starting. ${TXT_A}."
 fi
-banner "MEASUREMENT STARTED" "stay out of the room"
-printf '  (first block is EMPTY — you should already be outside)\n\n'
+banner "START — ${COND_A}" "block 1 of $((2*CYCLES)) — ${TXT_A}"
+printf '  the countdown gave you time; you should already be in place\n\n'
 
 for ((k = 1; k <= 2 * CYCLES; k++)); do
   bstart=$(( (k - 1) * ALTERNATE ))
-  if (( k % 2 == 0 )); then
-    # person block: pre-cue to walk, then confirm seated
-    wait_until "$(awk -v t="$T0" -v o="$bstart" -v l="$LEAD" 'BEGIN{printf "%.3f", t+o-l}')" \
-               "block $k walk in"
-    alarm URGENT "Walk in now. Be seated."
-    banner "WALK IN NOW" "block $k of $((2*CYCLES)) — be seated"
-    wait_until "$(awk -v t="$T0" -v o="$bstart" 'BEGIN{printf "%.3f", t+o}')" \
-               "block $k seated"
-    alarm SOFT "Seated. Hold still."
-    banner "HOLD STILL" "block $k of $((2*CYCLES)) — seated"
-  else
-    wait_until "$(awk -v t="$T0" -v o="$bstart" 'BEGIN{printf "%.3f", t+o}')" \
-               "block $k leave"
-    if (( k == 1 )); then
-      alarm SOFT "Stay outside."
-      banner "STAY OUTSIDE" "block 1 of $((2*CYCLES)) — empty"
-    else
-      alarm URGENT "Leave the room now."
-      banner "LEAVE THE ROOM" "block $k of $((2*CYCLES)) — empty"
-    fi
+  if (( k % 2 == 1 )); then cond="$COND_A"; txt="$TXT_A"; else cond="$COND_B"; txt="$TXT_B"; fi
+
+  if (( k > 1 )); then
+    wait_until "$(at $((bstart - LEAD)))" "block $k move"
+    alarm URGENT "Move now. ${txt}."
+    banner "MOVE NOW — ${cond}" "block $k of $((2*CYCLES)) — ${txt}" \
+           "you have ${LEAD}s to get there"
+    wait_until "$(at "$bstart")" "block $k in place"
+    alarm SOFT "In place. ${cond}."
+    banner "IN PLACE — ${cond}" "block $k of $((2*CYCLES)) — hold this for ${ALTERNATE}s"
   fi
 done
 

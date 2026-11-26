@@ -24,10 +24,24 @@
 #   person_in_zone_moving     scripted walk-throughs
 #   person_out_of_zone        person present elsewhere in the room (hard negative)
 #   occupied_uncontrolled     soak/ambient only, occupancy unknown -> exploratory
+#   alternating               one file containing two conditions (see below)
+#
+# Alternating mode records both conditions in one continuous capture so that
+# drift between blocks is common-mode:
+#   --alternate 90 --cycles 20        one hour, 20 pairs, 90 s per block
+#   --condition-a empty_room          first block of each cycle (default)
+#   --condition-b person_in_zone_static   second block (default)
+# Pick the pair deliberately:
+#   empty_room <-> person_in_zone_static   primary L3 contrast, large effect
+#   empty_room <-> person_out_of_zone      hard negative, small effect
+#   empty_room <-> person_in_zone_moving   L1 motion, largest effect
+# Never mix three conditions in one schedule.
 #
 # Exit codes: 0 started/finished, 1 usage/config error, 2 capture already running.
 
 set -euo pipefail
+# Keep awk/date output locale-independent (decimal point, not comma).
+export LC_ALL=C
 
 SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 ROOT="$(dirname "$(dirname "$SELF")")"
@@ -38,6 +52,7 @@ usage() { sed -n '2,20p' "$SELF" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 # ----------------------------------------------------------------- args
 LABEL=""; PLACEMENT="A"; DURATION=300; COUNTDOWN=15; COUNTDOWN_GIVEN=0
 ALTERNATE=0; CYCLES=0; GUARD=10
+COND_A="empty_room"; COND_B="person_in_zone_static"
 DIST_CM=""; HEIGHT_CM=""; SUBJECT=""; NOTES=""; PORT="/dev/ttyACM0"
 OUTDIR="$ROOT/data"; FOREGROUND=0; RESET=1; INNER_DIR=""
 MOUNT="taped"; CABLE="pc-end"
@@ -51,6 +66,8 @@ while [[ $# -gt 0 ]]; do
     --alternate)    ALTERNATE="${2:?}"; shift 2 ;;
     --cycles)       CYCLES="${2:?}"; shift 2 ;;
     --guard)        GUARD="${2:?}"; shift 2 ;;
+    --condition-a)  COND_A="${2:?}"; shift 2 ;;
+    --condition-b)  COND_B="${2:?}"; shift 2 ;;
     --distance-cm)  DIST_CM="${2:?}"; shift 2 ;;
     --height-cm)    HEIGHT_CM="${2:?}"; shift 2 ;;
     --subject)      SUBJECT="${2:?}"; shift 2 ;;
@@ -81,14 +98,31 @@ find_python() {
   return 1
 }
 
-fw_hash() {
-  local d="$HOME/esp/esp-csi"
+fw_hash() {  local d="$HOME/esp/esp-csi"
   if git -C "$d" rev-parse --git-dir >/dev/null 2>&1; then
     local h; h="$(git -C "$d" rev-parse --short HEAD)"
     git -C "$d" diff --quiet && echo "$h" || echo "$h-dirty"
   else
     echo "unknown"
   fi
+}
+
+# Human instruction for a condition, shared wording with docs/layout.md.
+cond_text() {
+  case "$1" in
+    empty_room)            echo "out of the room, door closed, nobody else in" ;;
+    person_in_zone_static) echo "sit at P1 (mid-point of the AP-node line), stay still" ;;
+    person_in_zone_moving) echo "walk slowly along the taped zone" ;;
+    person_out_of_zone)    echo "sit at P3 (far corner, off the AP-node line), stay still" ;;
+    *)                     echo "follow condition $1" ;;
+  esac
+}
+
+valid_cond() {
+  case "$1" in
+    empty_room|person_in_zone_static|person_in_zone_moving|person_out_of_zone) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 # ----------------------------------------------------------------- inner mode
@@ -160,6 +194,9 @@ if (( ALTERNATE > 0 )); then
   (( 2 * GUARD < ALTERNATE )) || {
     echo "--guard ${GUARD}s leaves no usable data in a ${ALTERNATE}s block (need 2*guard < alternate)" >&2
     exit 1; }
+  valid_cond "$COND_A" || { echo "invalid --condition-a '$COND_A'" >&2; exit 1; }
+  valid_cond "$COND_B" || { echo "invalid --condition-b '$COND_B'" >&2; exit 1; }
+  [[ "$COND_A" != "$COND_B" ]] || { echo "--condition-a and --condition-b must differ" >&2; exit 1; }
   DURATION=$(( 2 * ALTERNATE * CYCLES ))
   # The measurement starts ~5 s after the port opens (board boot). Pick the
   # countdown so it starts at exactly ONE block length after launch: then the
@@ -258,24 +295,22 @@ if (( ALTERNATE > 0 )); then
   {
     echo "ALTERNATING SCHEDULE — ${CYCLES} cycles x ${ALTERNATE}s per block (${DURATION}s)"
     echo
+    echo "Contrast: ${COND_A}  <->  ${COND_B}"
+    echo
     echo "Start the phone timer the instant you press Enter. The measurement begins"
     echo "${COUNTDOWN}s + ~5s boot after that, i.e. at phone time ~${OFFSET}s, so:"
     echo "  - block boundaries are phone readings $((OFFSET+ALTERNATE))s, $((OFFSET+2*ALTERNATE))s, ..."
     echo "  - the first ${GUARD}s and last ${GUARD}s of each block are discarded as transition"
+    echo "  - floor marks and posture: docs/layout.md"
     echo
-    printf '%-6s %-20s %s\n' "block" "condition" "phone timer"
+    printf '%-6s %-24s %-10s %s\n' "block" "condition" "ready by" "what to do"
     for ((c=1; c<=CYCLES; c++)); do
       eb=$(( (2*c-2)*ALTERNATE )); ee=$(( (2*c-1)*ALTERNATE ))
       pb=$(( (2*c-1)*ALTERNATE )); pe=$(( 2*c*ALTERNATE ))
-      printf '%d,%s,%d,%d,%d\n' "$((2*c-1))" empty_room "$eb" "$ee" "$GUARD" >> "$DIR/schedule.csv"
-      printf '%d,%s,%d,%d,%d\n' "$((2*c))" person_out_of_zone "$pb" "$pe" "$GUARD" >> "$DIR/schedule.csv"
-      if (( c == 1 )); then
-        printf '%-6d %-20s %ss: stay out\n' "$((2*c-1))" empty_room "$((eb+OFFSET))"
-      else
-        printf '%-6d %-20s %ss: leave the room\n' "$((2*c-1))" empty_room "$((eb+OFFSET))"
-      fi
-      printf '%-6d %-20s %ss: walk in, seated by %ss\n' "$((2*c))" person_out_of_zone \
-             "$((pb+OFFSET-12))" "$((pb+OFFSET))"
+      printf '%d,%s,%d,%d,%d\n' "$((2*c-1))" "$COND_A" "$eb" "$ee" "$GUARD" >> "$DIR/schedule.csv"
+      printf '%d,%s,%d,%d,%d\n' "$((2*c))"   "$COND_B" "$pb" "$pe" "$GUARD" >> "$DIR/schedule.csv"
+      printf '%-6d %-24s %-10s %s\n' "$((2*c-1))" "$COND_A" "$((eb+OFFSET))s" "$(cond_text "$COND_A")"
+      printf '%-6d %-24s %-10s %s\n' "$((2*c))"   "$COND_B" "$((pb+OFFSET))s" "$(cond_text "$COND_B")"
     done
   } > "$DIR/cues.txt"
 
@@ -297,7 +332,7 @@ echo "session dir : $DIR"
 echo "label       : $LABEL"
 echo "duration    : ${DURATION}s"
 if (( ALTERNATE > 0 )); then
-  echo "schedule    : ${CYCLES} x (${ALTERNATE}s empty + ${ALTERNATE}s person), guard ${GUARD}s"
+  echo "schedule    : ${CYCLES} x (${ALTERNATE}s ${COND_A} + ${ALTERNATE}s ${COND_B}), guard ${GUARD}s"
   echo "cue sheet   : $DIR/cues.txt   (print it, or open it on the phone)"
 fi
 echo

@@ -179,6 +179,13 @@ Do not upgrade these mid-campaign; a toolchain change is a rig change (re-record
    cues the blocks with vibration / spoken instruction / torch flash. It anchors the schedule to
    the PC's `RECORDING` line rather than to the SSH call, so SSH latency and boot do not shift
    the block boundaries. Dry-run tested; not yet used on a phone.
+   **Conditions:** both scripts take `--condition-a` / `--condition-b` (default
+   `empty_room` ↔ `person_in_zone_static`). Floor marks, zone geometry and per-condition
+   instructions are defined once in `docs/layout.md`. The pair must be chosen deliberately:
+   in-zone static is the primary L3 contrast (blocks the Fresnel ellipsoid, large effect);
+   out-of-zone is the hard negative (reflections only, small effect); moving is L1. Never put
+   three conditions in one schedule. An `EXIT` trap stops the PC capture if the cue loop dies,
+   because an unguided alternating capture has no valid labels.
 3. Record ≥2 such recordings on ≥2 days before any classifier work.
 4. Port the example into `firmware/` (carry over `partitions.csv` + flash size 16 MB); record firmware
    build hash per session.
