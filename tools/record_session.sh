@@ -192,9 +192,14 @@ LOCK="${TMPDIR:-/tmp}/esp32_csi_capture.lock"
 exec 9>"$LOCK"
 if ! flock -n 9; then
   echo "a capture is already running (lock: $LOCK)" >&2
+  echo "check it with: pgrep -af 'capture_serial.py'" >&2
+  echo "the lock is released automatically when that capture exits — do not delete it," >&2
+  echo "two readers on one serial port silently corrupt both files" >&2
   exit 2
 fi
-exec 9>&-   # release; the inner worker re-acquires and holds it
+# The outer process holds the lock THROUGH the countdown, so a second launch
+# cannot pass the check and then collide 85 s later when the worker starts.
+# It is released immediately before launch; see below.
 
 avail_kb="$(df -Pk "$OUTDIR" 2>/dev/null | awk 'NR==2{print $4}' || echo 0)"
 if [[ -n "${avail_kb:-}" ]] && (( avail_kb < 2097152 )); then
@@ -310,6 +315,7 @@ if (( COUNTDOWN > 0 )); then
   printf '\r    RECORDING                              \n'
 fi
 
+exec 9>&-   # released; the inner worker re-acquires it for the whole capture
 if (( FOREGROUND )) || ! command -v tmux >/dev/null 2>&1; then
   (( FOREGROUND )) || echo "tmux not found; running in foreground" >&2
   exec bash "$SELF" --inner "$DIR"

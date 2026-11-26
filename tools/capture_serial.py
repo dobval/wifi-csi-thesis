@@ -184,12 +184,12 @@ def main() -> int:
                     fclock.write(f"{time.time_ns()},{board_ts},{csi_rows}\n")
                     fclock.flush()
                     last_clock = now
-    finally:
-        try:
-            ser.close()
-        except Exception:
-            pass
-
+    except Exception as exc:                      # never lose the sidecars
+        print(f"capture_serial: unexpected error: {exc}", file=sys.stderr)
+    # The port is closed AFTER the sidecars are written. ser.close() has been
+    # observed to block indefinitely in the kernel (wchan tty_wait_until_sent)
+    # when a capture is stopped mid-stream, and losing csi_stats.json to a hung
+    # close makes the session look like it never ran.
     elapsed = time.time() - t_start
     span = ((time.time_ns() - first_csi_ns) / 1e9) if first_csi_ns else None
     stats = {
@@ -218,6 +218,14 @@ def main() -> int:
     }
     with open(stats_path, "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2)
+
+    # close() can block in the kernel on a USB-serial device that stopped
+    # draining. Run it in a daemon thread so a hung close cannot keep the
+    # process (and the capture lock) alive; the sidecars are already on disk.
+    import threading
+    closer = threading.Thread(target=ser.close, daemon=True)
+    closer.start()
+    closer.join(2.0)
 
     print(f"csi_rows={csi_rows} rate={stats['rows_per_s']} Hz "
           f"malformed={malformed} non_csi={non_csi} "

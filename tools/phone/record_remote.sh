@@ -21,8 +21,15 @@
 # Usage:
 #   ./record_remote.sh --alternate 90 --cycles 20
 #   ./record_remote.sh --dry-run --alternate 10 --cycles 2    # no PC, local test
+#   ./record_remote.sh --status          # is a capture running on the PC?
+#   ./record_remote.sh --stop            # SIGTERM the remote worker (finalises it)
 #
-# Exit codes: 0 ok, 1 usage, 2 cannot reach the PC, 3 remote capture never started.
+# Ctrl-C here stops only the phone's cue loop. The capture on the PC keeps
+# running; use --status to check and --stop to end it. Do NOT delete the lock
+# file: two readers on one serial port silently corrupt both recordings.
+#
+# Exit codes: 0 ok, 1 usage, 2 cannot reach the PC, 3 remote capture never
+# started, 4 the PC is already running a capture.
 
 set -uo pipefail
 
@@ -37,12 +44,18 @@ LEAD_GIVEN=0
 BOOT=5           # board boot between "RECORDING" and the first CSI row
 DRY=0
 ALARM=1
+MODE=run
 NOTES="phone-cued alternating block"
 
-usage() { sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() {
+  awk 'NR>1 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "$0"
+  exit "${1:-0}"
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --status)       MODE=status; shift ;;
+    --stop)         MODE=stop; shift ;;
     --host)         HOST="${2:?}"; shift 2 ;;
     --repo)         REPO="${2:?}"; shift 2 ;;
     --alternate)    ALTERNATE="${2:?}"; shift 2 ;;
@@ -143,6 +156,31 @@ if (( ! DRY )); then
   fi
 fi
 
+sshq() { ssh -o BatchMode=yes -o ConnectTimeout=8 "$HOST" "$@"; }
+
+if [[ "$MODE" == status ]]; then
+  echo "capture processes on $HOST:"
+  sshq "pgrep -af 'capture_serial\.py' || echo '(none)'" | sed 's/^/  /'
+  echo "tmux sessions:"
+  sshq "tmux ls 2>/dev/null | grep csi- || echo '(none)'" | sed 's/^/  /'
+  printf 'capture lock: '
+  sshq "flock -n /tmp/esp32_csi_capture.lock true 2>/dev/null && echo free || echo HELD"
+  exit 0
+fi
+
+if [[ "$MODE" == stop ]]; then
+  echo "SIGTERM -> capture worker on $HOST"
+  sshq "pkill -TERM -f 'capture_serial\.py' && echo '  signal sent' || echo '  no worker found'"
+  sleep 3
+  if sshq "pgrep -f 'capture_serial\.py' >/dev/null 2>&1"; then
+    echo "  worker still alive — probably stuck in close(). On the PC:" >&2
+    echo "    pgrep -af capture_serial.py    # then: kill -9 <pid>" >&2
+    exit 1
+  fi
+  echo "  worker gone; session finalised, lock released."
+  exit 0
+fi
+
 # Build the remote command. A leading "~/" must stay expandable by the REMOTE
 # shell, so it is emitted as "$HOME"/<rest> rather than percent-quoted.
 if [[ "$REPO" == "~/"* ]]; then
@@ -173,18 +211,33 @@ else
   ssh -o BatchMode=yes -o ConnectTimeout=8 "$HOST" "$remote" >"$LOG" 2>&1 &
   SSH_PID=$!
 
-  # Wait for the PC to finish its countdown. 0.2 s poll, 150 s ceiling.
-  found=0
-  for _ in $(seq 1 750); do
+  # Wait for the PC's countdown. The PC is deliberately silent for countdown +
+  # boot (~90 s), so echo its own progress line back or this looks like a hang.
+  trap 'printf "\n"; echo "phone cue loop stopped — the PC capture is STILL RUNNING"; echo "  check: bash $0 --status"; echo "  stop : bash $0 --stop"; exit 130' INT
+  found=0; locked=0
+  t_wait=$(now)
+  for _ in $(seq 1 600); do
     if grep -q 'RECORDING' "$LOG" 2>/dev/null; then found=1; break; fi
+    if grep -q 'already running' "$LOG" 2>/dev/null; then locked=1; break; fi
     if ! kill -0 "$SSH_PID" 2>/dev/null; then break; fi
-    sleep 0.2
+    tail_msg=$(tr '\r' '\n' < "$LOG" 2>/dev/null | grep -v '^[[:space:]]*$' | tail -1 | cut -c1-52)
+    el=$(awk -v n="$(now)" -v s="$t_wait" 'BEGIN{printf "%d", n-s}')
+    printf '\r  %3ss  %-52s' "$el" "${tail_msg:-contacting the PC}"
+    sleep 0.25
   done
+  printf '\r%70s\r' ''
+
+  if (( locked )); then
+    echo "The PC is already running a capture, so this launch was refused." >&2
+    echo "Ctrl-C on the phone does NOT stop a capture on the PC." >&2
+    echo "  check: bash $0 --status" >&2
+    echo "  stop : bash $0 --stop" >&2
+    exit 4
+  fi
 
   if (( ! found )); then
-    echo
     echo "the remote capture never reached RECORDING. Remote output:" >&2
-    sed 's/^/    /' "$LOG" >&2 | tail -20
+    sed 's/^/    /' "$LOG" | tail -20 >&2
     exit 3
   fi
 

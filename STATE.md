@@ -140,6 +140,18 @@ Do not upgrade these mid-campaign; a toolchain change is a rig change (re-record
   (a 1 GB soak in git history is irreversible). The session dir carries `session.md` +
   `manifest.sha256`; raw files live on disk + external backup. Install `git-lfs` if raw data
   ever needs to be versioned.
+- **`ser.close()` can block in the kernel** (`wchan tty_wait_until_sent`) when a capture is
+  stopped mid-stream on the CH343. Observed 2026-11-26: the worker stopped reading but never
+  exited, holding the capture lock. Mitigated: `csi_stats.json` is now written *before* the
+  port is closed, and close runs in a daemon thread with a 2 s join. If a worker still hangs,
+  `kill -9 <pid>`; the wrapper then finalises the session (exit code 137, `stats missing`).
+- **`data/20261126_0941_alternating_A_ABORTED/`** — a 3-minute alternating capture started from
+  the phone and interrupted with Ctrl-C on the phone (which does not stop the PC). The subject
+  never followed the cue schedule, so the block labels are meaningless. **Do not use it.** Kept
+  for the record with its `manifest.sha256` intact.
+- The capture lock is a `flock` on `/tmp/esp32_csi_capture.lock`. **Never delete it.** Two
+  readers on one serial port each receive part of the stream and both files look plausible;
+  the corruption is undetectable afterwards. It is released automatically when the capture exits.
 - Wi-Fi auth failures surface as `wifi:state: run -> init (0xf00)` + `Wi-Fi disconnected 15` —
   reason 15 is 4-way handshake timeout, i.e. **wrong PSK**. Check `CONFIG_EXAMPLE_WIFI_PASSWORD` first.
 
