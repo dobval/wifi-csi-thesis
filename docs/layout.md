@@ -57,16 +57,17 @@ Fixed, so nothing drifts mid-session:
 
 - the **board and its USB cable** are taped down
 - **P1 is marked** on the floor — subject **stands** there
-- **P3 is marked** on the floor — subject **sits** there
+- **P3 is on the sofa** — subject **sits** there (the sofa is fixed, so the seat is reproducible)
 
 Not fixed:
 
 - there is no taped *zone boundary*; the 60 cm strip is a conceptual region and
   only matters for the moving condition
 
-Both marks make their conditions reproducible, **provided the marks are used**:
-stand with P1 between your feet, sit centred on P3. A 30 cm error is the size of
-the Fresnel radius, i.e. a different condition.
+P1 is a floor mark; P3 is a sofa seat. Both are fixed in place, so both
+conditions are reproducible **provided they are used consistently**: stand with P1
+between your feet, sit on the same cushion. A 30 cm error is the size of the
+Fresnel radius, i.e. a different condition.
 
 ## Positions
 
@@ -77,7 +78,7 @@ All distances from a tape measure, never from the plan.
 | **Node** | 260 cm from the AP, 88 cm high, board and cable taped | already done |
 | **AP** | 88 cm high | fixed |
 | **P1** | mid-point of the node–AP line: **130 cm from each end**, on the line; **marked on the floor**, subject **stands** | use the existing mark |
-| **P3** | far side of the room, **at least 1.5 m off** the node–AP line; **marked on the floor**, subject **sits** | use the existing mark |
+| **P3** | far side of the room, **at least 1.5 m off** the node–AP line; subject **sits on the sofa** | same cushion every session |
 | **zone** | conceptual: 60 cm wide strip along the line, 40 cm short of each end | only needed for the moving condition |
 
 Set P1 by running a string or tape from the node to the AP and measuring 130 cm
@@ -131,7 +132,8 @@ The cue script announces every transition. Beyond that:
 - do not stop inside the zone or turn sharply at the ends
 
 **`person_out_of_zone`:**
-- seated at P3, same posture as P1, facing the same way
+- seated on the sofa at P3, same cushion, same orientation, facing the same way
+- do not lean forward, put your feet up, or move a cushion
 - do not drift onto the node–AP line "to be safe" — that is the other condition
 
 ## Things that silently ruin a session
@@ -153,13 +155,18 @@ The cue script announces every transition. Beyond that:
   board at 88 cm is just below it. Verify with a tape before writing it down.
 - AP and node are both at 88 cm, so the direct path is horizontal: no specular
   floor or ceiling reflection, which is why the direct ray dominates.
+- P3 is a sofa: a large upholstered object, possibly with a metal frame. It is
+  present during every condition, so it belongs to the static channel — do not
+  move it, re-cover it or add cushions between sessions. It also means the
+  out-of-zone class is "person seated on a sofa", not "person in free space";
+  say so rather than implying the body is the only thing that changed.
 
 ## Checklist before the first block
 
 - [ ] AP↔node taped at **260 cm**, both antennas 88 cm
 - [ ] node and cable taped, cable broken only at the PC end
 - [ ] the P1 mark is actually used (standing, mark between the feet)
-- [ ] the P3 mark is actually used (seated, centred on it)
+- [ ] same sofa cushion used for P3
 - [ ] posture recorded: P1 is **standing**, P3 is **seated** (do not compare the
       two conditions directly — posture is a confound for that comparison)
 - [ ] nobody else in the building who might walk past

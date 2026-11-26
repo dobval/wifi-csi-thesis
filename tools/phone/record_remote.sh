@@ -149,7 +149,7 @@ cond_text() {
     empty_room)            echo "out of the room, door closed" ;;
     person_in_zone_static) echo "stand at P1, on the AP-node line, stay still" ;;
     person_in_zone_moving) echo "walk slowly along the node-AP line, past P1" ;;
-    person_out_of_zone)    echo "sit at P3, marked far corner, stay still" ;;
+    person_out_of_zone)    echo "sit on the sofa at P3, stay still" ;;
     *)                     echo "follow condition $1" ;;
   esac
 }
