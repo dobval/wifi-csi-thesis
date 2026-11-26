@@ -121,11 +121,20 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("session")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--blocks", default=None,
+                    help="restrict to a block range, e.g. 1-3 (useful when a run was cut short)")
     args = ap.parse_args()
     rng = np.random.default_rng(args.seed)
 
     amp, rssi, t_s = load(args.session)
     sched = read_schedule(args.session)
+    if args.blocks:
+        if "-" in args.blocks:
+            lo, hi = (int(v) for v in args.blocks.split("-", 1))
+        else:
+            lo = hi = int(args.blocks)
+        sched = [b for b in sched if lo <= b["block"] <= hi]
+        print(f"restricted to blocks {lo}-{hi} ({len(sched)} blocks)")
 
     rows, feats, skipped = [], [], 0
     for b in sched:

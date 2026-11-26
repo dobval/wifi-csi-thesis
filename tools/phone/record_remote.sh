@@ -28,6 +28,11 @@
 # running; use --status to check and --stop to end it. Do NOT delete the lock
 # file: two readers on one serial port silently corrupt both recordings.
 #
+# If the cue loop dies before the schedule ends (Ctrl-C, terminal closed, Android
+# killing the app), the EXIT trap stops the PC capture automatically: without
+# cues the recording has no valid block labels. Events are appended to
+# ~/csi_cue.log so a failure leaves evidence.
+#
 # Exit codes: 0 ok, 1 usage, 2 cannot reach the PC, 3 remote capture never
 # started, 4 the PC is already running a capture.
 
@@ -110,6 +115,7 @@ alarm() {
   # alarm URGENT|SOFT  "text"
   local kind="$1" text="$2"
   (( ALARM )) || return 0
+  log "cue $kind: $text"
   if have termux-tts-speak; then
     termux-tts-speak -r 0.60 "$text" >/dev/null 2>&1 &
   fi
@@ -157,6 +163,26 @@ if (( ! DRY )); then
 fi
 
 sshq() { ssh -o BatchMode=yes -o ConnectTimeout=8 "$HOST" "$@"; }
+
+# Phone-side log: if the cue loop dies, this file says where and why.
+HLOG="${HOME}/csi_cue.log"
+log() { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$HLOG"; }
+
+# If the cue loop ends before the schedule is finished, the capture on the PC is
+# worthless (nobody was guided), so stop it rather than leave an orphan holding
+# the serial port for an hour.
+CAPTURE_LIVE=0
+on_exit() {
+  local rc=$?
+  if (( CAPTURE_LIVE )); then
+    echo
+    echo "cue loop ended early — stopping the PC capture so it is not orphaned"
+    log "ended early rc=$rc; stopping remote capture"
+    sshq "pkill -TERM -f 'capture_serial\.py'" >/dev/null 2>&1 || true
+  fi
+  log "exit rc=$rc"
+}
+trap on_exit EXIT
 
 if [[ "$MODE" == status ]]; then
   echo "capture processes on $HOST:"
@@ -208,12 +234,13 @@ if (( DRY )); then
 else
   echo
   echo "  launching on the PC..."
-  ssh -o BatchMode=yes -o ConnectTimeout=8 "$HOST" "$remote" >"$LOG" 2>&1 &
+  log "launch alt=$ALTERNATE cycles=$CYCLES host=$HOST"
+  ssh -o BatchMode=yes -o ConnectTimeout=8 "$HOST" "$remote" </dev/null >"$LOG" 2>&1 &
   SSH_PID=$!
 
   # Wait for the PC's countdown. The PC is deliberately silent for countdown +
   # boot (~90 s), so echo its own progress line back or this looks like a hang.
-  trap 'printf "\n"; echo "phone cue loop stopped — the PC capture is STILL RUNNING"; echo "  check: bash $0 --status"; echo "  stop : bash $0 --stop"; exit 130' INT
+  trap 'printf "\n"; echo "cue loop interrupted — the PC capture will be stopped so it is not orphaned"; log "INT received"; exit 130' INT
   found=0; locked=0
   t_wait=$(now)
   for _ in $(seq 1 600); do
@@ -244,6 +271,8 @@ else
   # Anchor: the PC prints RECORDING just before opening the port; the first CSI
   # row follows after the board boots.
   T0=$(awk -v n="$(now)" -v b="$BOOT" 'BEGIN{ printf "%.3f", n+b }')
+  CAPTURE_LIVE=1
+  log "measurement anchor set"
   echo
   echo "  PC is recording. First CSI row in ~${BOOT}s."
 fi
@@ -282,6 +311,7 @@ done
 
 wait_until "$(awk -v t="$T0" -v o="$NOTE_ALT" 'BEGIN{printf "%.3f", t+o}')" "capture ends"
 alarm URGENT "Capture complete. You can return."
+CAPTURE_LIVE=0
 banner "DONE" "capture finished — you can go back"
 
 if (( ! DRY )); then

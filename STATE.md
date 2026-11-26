@@ -149,6 +149,12 @@ Do not upgrade these mid-campaign; a toolchain change is a rig change (re-record
   the phone and interrupted with Ctrl-C on the phone (which does not stop the PC). The subject
   never followed the cue schedule, so the block labels are meaningless. **Do not use it.** Kept
   for the record with its `manifest.sha256` intact.
+- **`data/20261126_0949_alternating_A_PARTIAL/`** — the first alternating run that produced usable
+  blocks. 360 s, 35 643 rows, 0 gaps. **Only blocks 1–3 are valid**; the phone cue loop died just
+  before block 4 and the rest is unguided. Analyse with `--blocks 1-3`. Block means: empty 9.373,
+  person 9.812, empty 9.187 — the two empties agree to 0.19 while person blocks sit +0.44 / +1.45
+  above them. See `results/20261126_alternating_probe/ANALYSIS.md`. n = 1 paired observation:
+  validates the mechanism, not the effect.
 - The capture lock is a `flock` on `/tmp/esp32_csi_capture.lock`. **Never delete it.** Two
   readers on one serial port each receive part of the stream and both files look plausible;
   the corruption is undetectable afterwards. It is released automatically when the capture exits.
