@@ -13,18 +13,24 @@ as empty vs person. The unit of analysis must move inside a single recording. Se
 ## Rig geometry (placement A)
 | Item | Value |
 |---|---|
-| AP ↔ node distance | **260 cm**, direct LOS |
+| AP ↔ node distance | **260 cm** (tape, 2026-11-25) — **disputed, see below** |
 | Both antennas height | **88 cm** above floor |
 | Node | bare board, on-module PCB antenna, non-metal surface |
 | Mount | **taped down** — position committed for the whole soak |
 | Cable handling | USB broken **at the PC end only**, never at the board |
 | Measured RSSI at this geometry | mean **−38.2 dBm** (range −32 … −52) |
-| Room | one zoned area beyond the link, no LOS block |
+| Room | 760 × 520 cm, node against the left wall in front of a 324 cm window, AP against the top wall |
+| Floor plan | `docs/layout.md`, generated from `docs/layout-source.json` by `tools/render_plan.py` |
 
 Distance and height are measured floor-to-floor with a tape and must be re-measured
 (not estimated) after any movement of the rig. Taping and PC-end-only cable breaks
 are protocol, not preference: the PCB antenna is parasitically coupled to the USB
 cable, so breaking the cable at the board end changes the static channel.
+
+**Unresolved: AP ↔ node is 260 cm by tape but 361 cm by the planner annotations.**
+The annotation anchors are hand-placed text labels, so they can be offset, but not
+by a metre. Re-measure before the next session; the baseline depends on it. Until
+then 260 cm is the recorded value and the plan is approximate.
 
 ## Pinned versions
 | Item | Pin | Location |
