@@ -1,13 +1,13 @@
 # Room layout and floor marks — placement A
 
-Source of truth for the topology: `docs/layout-source.json` (room planner export,
-2026-11-26). The plan is generated from it, never drawn by hand:
+Topology comes from `docs/layout-source.json` (room planner export, 2026-11-26).
+The plan below is generated from it, never drawn by hand:
 
 ```bash
-python3 tools/render_plan.py docs/layout-source.json --width 76 --real-span 280
+python3 tools/render_plan.py docs/layout-source.json --width 76
 ```
 
-## To-scale plan
+## Plan (topology, not to scale)
 
 ```
 +----------------------------------------------------------------------------+
@@ -32,49 +32,67 @@ python3 tools/render_plan.py docs/layout-source.json --width 76 --real-span 280
      # wall   = window   . door   : line of sight
 ```
 
-## Measurements vs sketch — read this before quoting any number
+## What is measured and what is only a sketch
 
 | Quantity | Value | Status |
 |---|---|---|
-| Node height | **88 cm** | **measured** (tape) |
-| AP height | **88 cm** | **measured** (tape) |
-| AP ↔ node | **280 cm** | **measured** (tape) |
-| Room size | ≈ 589 × 403 cm | sketch, scaled — estimate |
+| Node height | **88 cm** | measured |
+| AP height | **88 cm** | measured |
+| AP ↔ node | **260 cm** | measured |
+| Room size | — | sketch; **do not quote** |
 | Door 98 / window 324 / walls 270 | planner values | unverified |
 | Seat positions, wall offsets | plan units | sketch |
 
-The planner reads 361 units for a measured 280 cm, so **the sketch is ~1.29×
-oversize**. Only the three measured numbers above may be quoted in the thesis or
-used to compute anything. The sketch is for topology — what is where, relative to
-what — and every distance you need must come off a tape.
+Only the three measured numbers may be used for anything. The plan is "closely
+proportional", not to scale.
 
-Corollary: earlier notes said 260 cm. **280 cm supersedes it**, so the
-2026-11-25/26 sessions carry a 20 cm mislabelled distance in their `session.md`.
-The raw data is unaffected; the label is wrong by 20 cm.
+**Do not compute distances from the plan.** Its "AP" and "ESP32" markers are
+*text labels*, offset so the words do not sit on top of the drawing; the 361
+units between them is the gap between two labels, not between two objects. No
+scale factor can rescue that, so `render_plan.py` reports plan units only.
 
-## Marks to tape
+## What "taped" means here
 
-Use the walls and the door as physical references; the plan's numbers are only a
-proportional guide.
+The **board and its USB cable** are taped down, so the node's position cannot
+drift mid-session. That is all.
 
-| Mark | Position | Use |
+There is **no taped zone on the floor**, and P1 is not physically marked.
+Consequence: nothing currently fixes where the subject sits. Between sessions the
+chair can move by tens of centimetres, which is comparable to the Fresnel radius
+and would quietly change the condition.
+
+Cheapest fix, in order of preference:
+
+1. photograph the chair and its distance from two walls, every session
+2. a single small mark (tape, a coin) at P1 and P3 — one mark each, not a zone
+3. nothing — then accept that P1 is reproducible only to ±20 cm and say so
+
+## Positions
+
+All distances from a tape measure, never from the plan.
+
+| Position | Where | How to establish it |
 |---|---|---|
-| **Node** | against the left wall, under the window, 88 cm high | never moved mid-campaign |
-| **AP** | against the top wall, 88 cm high | never moved mid-campaign |
-| **P1** | mid-point of the measured 280 cm line, **within 20 cm of it laterally** | `person_in_zone_static` |
-| **P3** | far side of the room, at least 1.5 m off the AP–node line | `person_out_of_zone` |
-| **ZONE** | 60 cm wide strip along the measured line, 40 cm short of each end | moving condition |
+| **Node** | 260 cm from the AP, 88 cm high, board and cable taped | already done |
+| **AP** | 88 cm high | fixed |
+| **P1** | mid-point of the node–AP line: **130 cm from each end**, on the line | tape 130 cm out from the node *along the string*, mark it |
+| **P3** | far side of the room, **at least 1.5 m off** the node–AP line | eyeball from the wall, then measure the perpendicular offset |
+| **zone** | conceptual: 60 cm wide strip along the line, 40 cm short of each end | only needed for the moving condition |
 
-P1 sits 140 cm from the AP and 140 cm from the node, because it is the mid-point.
-Get that from the tape, not from the sketch.
+Set P1 by running a string or tape from the node to the AP and measuring 130 cm
+along it. Do not estimate the mid-point from the room.
 
-Why 60 cm wide and 20 cm lateral tolerance: the first Fresnel radius at 2.4 GHz
-over 280 cm is `sqrt(λ·d₁d₂/(d₁+d₂))` ≈ **30 cm**. A body further than ~30 cm
-from the line is no longer obstructing the direct path, it is only changing
-reflections — which is the *other* condition.
+## Why 60 cm wide and 20 cm tolerance
 
-For reference, the sketch puts the "in zone" mark at ~23 cm off the line once
-scaled, i.e. right on the Fresnel edge. Aim inside 20 cm instead.
+First Fresnel radius at 2.4 GHz over 260 cm:
+
+```
+sqrt(λ·d₁·d₂/(d₁+d₂)) = sqrt(0.125 · 1.30 · 1.30 / 2.60) ≈ 0.285 m  →  28 cm
+```
+
+A body further than ~28 cm from the line is no longer obstructing the direct path,
+it is only changing reflections — which is the *other* condition. So P1 should be
+within ~20 cm of the line to be safely inside.
 
 ## What each condition means, physically
 
@@ -82,7 +100,7 @@ scaled, i.e. right on the Fresnel edge. Aim inside 20 cm instead.
 |---|---|---|
 | `empty_room` | nobody in the room, door closed | none |
 | `person_in_zone_static` | seated at P1, still | blocks the direct path — large, easy effect |
-| `person_in_zone_moving` | walking along the taped zone | sweeps the direct path — largest effect |
+| `person_in_zone_moving` | walking along the zone | sweeps the direct path — largest effect |
 | `person_out_of_zone` | seated at P3, still | reflected paths only — small, hard effect |
 
 `person_in_zone_static` is the **primary** L3 contrast. `person_out_of_zone` is
@@ -100,19 +118,19 @@ The cue script announces every transition. Beyond that:
 - no pets, no fans switched on or off mid-run
 
 **`person_in_zone_static`:**
-- seated at P1, within 20 cm of the AP–node line
+- seated at P1, within 20 cm of the node–AP line
 - feet flat, back against the chair, same chair and orientation every session
 - breathe normally; breathing is the L2 signal, not noise
 - do not fidget, check the phone, shift weight or talk
 
 **`person_in_zone_moving`:**
-- steady pace along the taped strip, ~1 m/s
+- steady pace along the strip, ~1 m/s
 - same direction each pass, or alternate and note it
 - do not stop inside the zone or turn sharply at the ends
 
 **`person_out_of_zone`:**
 - seated at P3, same posture as P1, facing the same way
-- do not drift onto the AP–node line "to be safe" — that is the other condition
+- do not drift onto the node–AP line "to be safe" — that is the other condition
 
 ## Things that silently ruin a session
 
@@ -126,20 +144,20 @@ The cue script announces every transition. Beyond that:
 
 ## RF notes worth recording in the thesis
 
-- The node sits close to the left wall (the sketch says ~8 cm), so its PCB antenna
-  has a large reflecting plane immediately behind it.
+- The node sits close to a wall, so its PCB antenna has a reflecting plane
+  immediately behind it. (How close is a sketch dimension — measure it if you
+  want to state it.)
 - The node is in front of a wide window. If the planner's 90 cm sill is right, the
-  board at 88 cm is just below it — glass, frame and the outdoors are all part of
-  the static channel. Verify the sill with a tape before describing it.
+  board at 88 cm is just below it. Verify with a tape before writing it down.
 - AP and node are both at 88 cm, so the direct path is horizontal: no specular
   floor or ceiling reflection, which is why the direct ray dominates.
 
 ## Checklist before the first block
 
-- [ ] AP↔node taped at **280 cm**; P1 at the mid-point
-- [ ] both antennas 88 cm, measured
-- [ ] node taped, cable broken only at the PC end
-- [ ] zone taped, P1 and P3 marked, P1 within 20 cm of the line
+- [ ] AP↔node taped at **260 cm**, both antennas 88 cm
+- [ ] node and cable taped, cable broken only at the PC end
+- [ ] P1 established by tape at 130 cm from the node, within 20 cm of the line
+- [ ] P1 reproducible across sessions (photo or single mark)
 - [ ] chair in position for P1 and P3
 - [ ] nobody else in the building who might walk past
 - [ ] `~/rec.sh --status` on the phone says `(none), (none), free`

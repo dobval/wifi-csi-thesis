@@ -56,9 +56,6 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("json")
     ap.add_argument("--width", type=int, default=76)
-    ap.add_argument("--real-span", type=float, default=None,
-                    help="measured AP<->node distance in cm; scales the sketch's "
-                         "proportion into estimates (the sketch itself is not to scale)")
     args = ap.parse_args()
 
     plan = json.load(open(args.json))["floors"][0]["plan"]
@@ -145,15 +142,10 @@ def main() -> int:
     if los:
         (ax, ay), (bx, by) = los
         d = math.hypot(ax - bx, ay - by)
-        f = (args.real_span / d) if args.real_span else None
-        print()
-        print(f"  AP <-> node        {d:.0f} plan units")
-        if f:
-            print(f"  measured            {args.real_span:.0f} cm "
-                  f"-> sketch is {1/f:.2f}x oversize")
-        print(f"  mid-point (P1)     x={(ax+bx)/2:.0f}  y={(ay+by)/2:.0f} units")
-
         ux, uy = (bx - ax) / d, (by - ay) / d
+        print()
+        print(f"  AP label <-> node label    {d:.0f} units")
+        print(f"  mid-point of those labels  x={(ax+bx)/2:.0f}  y={(ay+by)/2:.0f} units")
         for a in plan["annotations"]:
             t = a["text"]
             if "zone" not in t.lower():
@@ -161,16 +153,12 @@ def main() -> int:
             vx, vy = a["x"] * k - ax, a["y"] * k - ay
             perp = abs(vx * uy - vy * ux)
             along = vx * ux + vy * uy
-            line = (f"  {t:18s} {perp:5.0f} units off the line, "
-                    f"{along:5.0f} along it from the AP")
-            if f:
-                line += f"   (scaled ~{perp*f:.0f} / {along*f:.0f} cm)"
-            print(line)
-        if f:
-            print()
-            print(f"  If the sketch is proportional, the room is about "
-                  f"{(xmax-xmin)*f:.0f} x {(ymax-ymin)*f:.0f} cm.")
-            print("  Treat scaled values as estimates, never as measurements.")
+            print(f"  {t:18s} {perp:5.0f} units off the label line, "
+                  f"{along:5.0f} along it")
+        print()
+        print("  These are LABEL positions, not object positions: annotations are")
+        print("  offset so the text does not overlap the drawing. The plan is for")
+        print("  topology only - take every distance from a tape measure.")
     return 0
 
 

@@ -6,7 +6,7 @@
 - File: `results/2026-1-24_1439-2102/soak_2026-11-24_1439.log`
 - Size: 1 004 519 639 B (958 MiB) → **150 MB/h**
 - Rig: ESP32-S3-DevKitC-1 N16R8, on-module PCB antenna, bare board
-- Geometry: AP ↔ node **280 cm** (tape; recorded as 260 at the time), both at **88 cm** height, direct LOS
+- Geometry: AP ↔ node **260 cm**, both at **88 cm** height, direct LOS
 - AP: `ssid_1`, BSSID `ap_1`
 - Firmware: esp-csi `8633d67`
 
@@ -59,7 +59,7 @@ as a receiver-thermal probe. Do not build a temperature-drift argument on it.
 
 ## 2a. Rig stability controls (operator-confirmed)
 
-- The node was **taped down before the soak** — position fixed at 280 cm / 88 cm
+- The node was **taped down before the soak** — position fixed at 260 cm / 88 cm
   for the entire 6 h 23 m.
 - The USB cable was **only ever broken at the PC end**, never at the board.
 
