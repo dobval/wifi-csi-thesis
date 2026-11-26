@@ -174,6 +174,11 @@ def main() -> int:
         tstat = f"{dif.mean()/se:.2f}" if se and np.isfinite(se) and se > 0 else "n/a"
         print(f"\n  n={len(dif)}  mean {dif.mean():+.3f}  sd {dif.std(ddof=1):.3f}  "
               f"se {se:.3f}  t={tstat}  sign-consistency {same:.0f}%")
+        if se and np.isfinite(se) and se > 0:
+            d_eff = abs(dif.mean()) / dif.std(ddof=1) if dif.std(ddof=1) else 0
+            need = int(np.ceil(((1.96 + 0.84) / d_eff) ** 2)) if d_eff > 0 else 0
+            print(f"      paired t-test: t={dif.mean()/se:.2f} on {len(dif)-1} df. "
+                  f"At this effect size (d={d_eff:.2f}) ~{need} pairs are needed for 80% power.")
 
     # ---- block-level separability
     E, P = F[isE], F[~isE]
@@ -184,6 +189,11 @@ def main() -> int:
     print(f"  best feature {FEAT[k]:12s} AUC {obs:5.3f}  |AUC-0.5| {abs(obs-0.5):.3f}")
     print(f"  permutation null 95th pct             {null:.3f}  -> "
           f"{'ABOVE null' if abs(obs-0.5) > null else 'within null'}")
+    if null >= 0.499:
+        print("  NOTE: this null is SATURATED at 0.500. With so few blocks, chance alone")
+        print("        separates them perfectly on at least one of the features tested, so")
+        print("        'within null' means the test has no power - not that the effect is")
+        print("        absent. Use the paired t on per-cycle deltas instead.")
 
     # ---- the null from inside the same recording
     idxE = np.where(isE)[0]
