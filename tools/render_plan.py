@@ -56,6 +56,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("json")
     ap.add_argument("--width", type=int, default=76)
+    ap.add_argument("--real-span", type=float, default=None,
+                    help="measured AP<->node distance in cm; scales the sketch's "
+                         "proportion into estimates (the sketch itself is not to scale)")
     args = ap.parse_args()
 
     plan = json.load(open(args.json))["floors"][0]["plan"]
@@ -126,38 +129,48 @@ def main() -> int:
     for r in grid:
         print("|" + "".join(r) + "|")
     print(f"+{'-' * W}+")
-    print(f"  room {xmax-xmin:.0f} x {ymax-ymin:.0f} cm   "
-          f"(1 char = {sx:.1f} cm across, {sy:.1f} cm down)")
+    print(f"  room {xmax-xmin:.0f} x {ymax-ymin:.0f} plan units — "
+          f"proportional, NOT to scale")
+    print(f"  1 char = {sx:.1f} units across, {sy:.1f} down")
     print("  # wall   = window   . door   : line of sight")
     for a in plan["annotations"]:
-        print(f"  {marker(a['text'])}  {a['text']}  "
-              f"x={a['x']*k:.0f}  y={a['y']*k:.0f}")
+        print(f"  {marker(a['text'])}  {a['text']}  x={a['x']*k:.0f}  y={a['y']*k:.0f} units")
     print()
     for op in plan["openings"]:
         ox1, oy1, ox2, oy2 = opening_span(plan, op)
-        print(f"  {op['type']:7s} {op['width']*k:4.0f} cm wide, "
-              f"centre ({((ox1+ox2)/2)*k:.0f}, {((oy1+oy2)/2)*k:.0f}) cm"
-              + (f", sill {op['sill_height']*k:.0f} cm" if op.get("sill_height") else ""))
+        extra = f", sill {op['sill_height']*k:.0f}" if op.get("sill_height") else ""
+        print(f"  {op['type']:7s} {op['width']*k:4.0f} units wide, "
+              f"centre ({((ox1+ox2)/2)*k:.0f}, {((oy1+oy2)/2)*k:.0f}){extra}")
 
     if los:
         (ax, ay), (bx, by) = los
         d = math.hypot(ax - bx, ay - by)
-        mx, my = (ax + bx) / 2, (ay + by) / 2
+        f = (args.real_span / d) if args.real_span else None
         print()
-        print(f"  AP <-> node        {d:.0f} cm")
-        print(f"  mid-point (P1)     x={mx:.0f}  y={my:.0f} cm")
+        print(f"  AP <-> node        {d:.0f} plan units")
+        if f:
+            print(f"  measured            {args.real_span:.0f} cm "
+                  f"-> sketch is {1/f:.2f}x oversize")
+        print(f"  mid-point (P1)     x={(ax+bx)/2:.0f}  y={(ay+by)/2:.0f} units")
+
+        ux, uy = (bx - ax) / d, (by - ay) / d
         for a in plan["annotations"]:
             t = a["text"]
             if "zone" not in t.lower():
                 continue
-            px, py = a["x"] * k, a["y"] * k
-            # perpendicular distance from the AP-node line
-            ux, uy = (bx - ax) / d, (by - ay) / d
-            vx, vy = px - ax, py - ay
+            vx, vy = a["x"] * k - ax, a["y"] * k - ay
             perp = abs(vx * uy - vy * ux)
             along = vx * ux + vy * uy
-            print(f"  {t:18s} {perp:5.0f} cm off the line, "
-                  f"{along:5.0f} cm along it from the AP")
+            line = (f"  {t:18s} {perp:5.0f} units off the line, "
+                    f"{along:5.0f} along it from the AP")
+            if f:
+                line += f"   (scaled ~{perp*f:.0f} / {along*f:.0f} cm)"
+            print(line)
+        if f:
+            print()
+            print(f"  If the sketch is proportional, the room is about "
+                  f"{(xmax-xmin)*f:.0f} x {(ymax-ymin)*f:.0f} cm.")
+            print("  Treat scaled values as estimates, never as measurements.")
     return 0
 
 

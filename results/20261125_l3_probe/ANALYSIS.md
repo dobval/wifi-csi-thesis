@@ -1,6 +1,6 @@
 # L3 probe — drift-limited negative result
 
-Six 300 s sessions recorded 2026-11-25, placement A (260 cm AP ↔ node, 88 cm,
+Six 300 s sessions recorded 2026-11-25, placement A (280 cm AP ↔ node, 88 cm,
 taped, PC-end cable breaks, no LOS block). Subject ~200 cm from the AP.
 
 | Session | Label |

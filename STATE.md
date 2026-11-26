@@ -13,7 +13,7 @@ as empty vs person. The unit of analysis must move inside a single recording. Se
 ## Rig geometry (placement A)
 | Item | Value |
 |---|---|
-| AP ↔ node distance | **260 cm** (tape, 2026-11-25) — **disputed, see below** |
+| AP ↔ node distance | **280 cm** (tape, 2026-11-26) |
 | Both antennas height | **88 cm** above floor |
 | Node | bare board, on-module PCB antenna, non-metal surface |
 | Mount | **taped down** — position committed for the whole soak |
@@ -27,10 +27,11 @@ Distance and height are measured floor-to-floor with a tape and must be re-measu
 are protocol, not preference: the PCB antenna is parasitically coupled to the USB
 cable, so breaking the cable at the board end changes the static channel.
 
-**Unresolved: AP ↔ node is 260 cm by tape but 361 cm by the planner annotations.**
-The annotation anchors are hand-placed text labels, so they can be offset, but not
-by a metre. Re-measure before the next session; the baseline depends on it. Until
-then 260 cm is the recorded value and the plan is approximate.
+**Only three numbers are measured: 88 cm node height, 88 cm AP height, 280 cm
+AP ↔ node.** Everything else in `docs/layout.md` is a proportional sketch from the
+room planner and must not be used to derive distances. Earlier notes said 260 cm;
+280 cm supersedes it, so the 2026-11-25/26 sessions carry a 20 cm mislabelled
+distance in their `session.md` (raw data unaffected).
 
 ## Pinned versions
 | Item | Pin | Location |
@@ -113,7 +114,7 @@ Do not upgrade these mid-campaign; a toolchain change is a rig change (re-record
   bullets above (−29 / −28 dBm) was taken **untaped, without a log file**, at an
   unrecorded position. They are "instrument alive" checks, not measurements of a
   geometry. The only reading with committed geometry is the soak's **−38.2 dBm at
-  260 cm / 88 cm, taped**. The 9 dB gap between the two is **not** a distance
+  280 cm / 88 cm, taped**. The 9 dB gap between the two is **not** a distance
   measurement and must not be reconciled, attributed, or plotted.
 - **Labelled sessions, 2026-11-25** — six 300 s sessions in `data/` (3 × `empty_room`,
   3 × `person_out_of_zone`), including an interleaved empty → person → empty block
@@ -139,7 +140,7 @@ Do not upgrade these mid-campaign; a toolchain change is a rig change (re-record
   Note: octal PSRAM occupies GPIO35–37 — never wire those.
 - CSI rows are **CRLF-terminated** (`]"` then `\r\n`), mean ~437 B, max 509 B. `csv.reader` handles
   this natively; a hand-rolled `split(',')` + `json.loads` parser must strip `\r` first.
-- RSSI at placement A is −38 dBm (260 cm). The mission needs 1–3 m; this is inside that band,
+- RSSI at placement A is −38 dBm (280 cm). The mission needs 1–3 m; this is inside that band,
   so placement A is usable — but the soak's 6.9 dB wander means a single RSSI reading proves
   nothing about the geometry. Record distance by tape, not by RSSI.
 - Raw captures are ~150 MB/h. `data/**/*.csv|*.log` and `results/**/*.log` are gitignored

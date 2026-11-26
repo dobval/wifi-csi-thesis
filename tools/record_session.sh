@@ -6,7 +6,7 @@
 # finalises with a SHA-256 manifest and capture statistics.
 #
 #   ./tools/record_session.sh --label person_out_of_zone --duration 300 \
-#       --distance-cm 260 --height-cm 88 --notes "subject seated, far corner"
+#       --distance-cm 280 --height-cm 88 --notes "subject seated, far corner"
 #
 # Rig handling is recorded per session and defaults to the committed protocol:
 #   --node-mount taped        how the node is held (taped|loose|stand|hand)

@@ -45,7 +45,7 @@ HOST="${CSI_HOST:-pc}"
 REPO="${CSI_REPO:-~/Documents/UNI/BEng_Project/wifi-csi-thesis}"
 ALTERNATE=90
 CYCLES=20
-DIST_CM=260
+DIST_CM=280
 HEIGHT_CM=88
 LEAD=""          # empty = derived from block length; see validation below
 LEAD_GIVEN=0
