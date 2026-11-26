@@ -108,3 +108,43 @@ across the run, and the person blocks varied more than the condition did.
 
 Until that is explained, more pairs will only buy precision about an unstable
 contrast.
+
+### Shape is invariant: the effect is frequency-flat gain
+
+Block-mean subcarrier pattern correlates at **r = 0.991** between empty blocks,
+**0.990** between person blocks, and **0.982** across conditions. The 64-subcarrier
+profile is essentially the same in all ten blocks.
+
+| feature | empty | person | AUC |
+|---|---|---|---|
+| gain (mean \|H\|) | 9.544 ± 1.01 | 10.508 ± 1.31 | 0.280 |
+| gain-normalised temporal sd | 0.355 ± 0.037 | 0.350 ± 0.048 | **0.520** |
+| RSSI | −37.0 | −36.6 | 0.240 |
+
+**After dividing out the gain there is nothing left** (AUC 0.520 is chance). The
+entire difference between the conditions is a scalar level shift of ~1 dB applied
+uniformly across the 20 MHz band — which is exactly what RSSI measures, and RSSI
+scores the same (0.240 vs 0.280).
+
+Meanwhile the *empty* condition alone spans **2.17 dB over ten minutes** with
+nobody in the room. The 6 h soak showed minute-to-minute steps up to 4.1 dB.
+
+### What this means
+
+At 260 cm and 88 cm, a stationary person is a **frequency-flat ~1 dB
+perturbation, below the link's own drift**. CSI carries no information that RSSI
+does not, because the body is not changing the multipath *structure* — only the
+overall level. Posture, facing and arm position are therefore not the source of
+the variance; they were ruled out by the invariant shape.
+
+Two honest options:
+
+1. **Report it as the detection envelope.** "At 260 cm, both antennas at 88 cm, a
+   stationary person is a ~1 dB frequency-flat perturbation, indistinguishable
+   from the link's 2.2 dB/10 min drift. CSI offers no gain over RSSI at this
+   geometry." That is a defensible negative result.
+2. **Change the geometry so the body intercepts a meaningful share of the power.**
+   Standing in the near field of one antenna (~60–80 cm) loads and detunes it,
+   producing large and frequency-selective changes. That is where CSI should
+   separate from RSSI — but the detection zone is then the antenna's near field,
+   not the middle of the room.
