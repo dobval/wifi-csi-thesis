@@ -121,10 +121,18 @@ The cue script announces every transition. Beyond that:
 
 **`person_in_zone_static`:**
 - **standing** at P1 with the floor mark between your feet — there is no chair
-- weight even, arms relaxed, feet planted and unmoving
-- do not lean on anything, sway, shift feet, or put a hand on a wall or table
+- face the same direction every block (record which)
+- cue phone in the **right hand**, elbow bent ~90°, held at chest height. That
+  keeps it **above the 88 cm link line**, so it sits outside the direct path
+  rather than in it. Held at the waist it would be a metal object in the beam.
+- weight even, feet planted and unmoving
+- do not lean on anything, sway, shift feet, or rest a hand on a wall or table
 - breathe normally; breathing is the L2 signal, not noise
-- do not fidget, check the phone or talk
+- do not talk or fidget. Glance down at the phone; do not raise it to read.
+
+The phone still changes your body's scattering cross-section, but it does so
+identically in every block, so it cancels in the paired comparison. Changing
+hands, pockets or height mid-session is a rig change, not a habit.
 
 **`person_in_zone_moving`:**
 - steady pace along the node–AP line, past P1, ~1 m/s
@@ -169,5 +177,6 @@ The cue script announces every transition. Beyond that:
 - [ ] same sofa cushion used for P3
 - [ ] posture recorded: P1 is **standing**, P3 is **seated** (do not compare the
       two conditions directly — posture is a confound for that comparison)
+- [ ] same stance, same facing direction, same phone hand (~90° elbow, chest height)
 - [ ] nobody else in the building who might walk past
 - [ ] `~/rec.sh --status` on the phone says `(none), (none), free`
