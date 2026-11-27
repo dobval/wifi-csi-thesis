@@ -60,13 +60,16 @@ Do not upgrade these mid-campaign; a toolchain change is a rig change (re-record
 - Ignored: ESP-IDF build artifacts (`build/`, `managed_components/`, `*.bin`), per-machine
   `sdkconfig*` (holds Wi-Fi credentials), Python caches, `.vscode/`.
 - `*.csv` is marked `-text` in `.gitattributes` so raw captures are never line-ending-normalised.
-- **Publication hygiene (2026-11-27).** The AP BSSID, SSID and LAN address were replaced with
-  stable hashes (`ap_1`, `ssid_1`, `192.168.1.x`) across all 29 commits with
-  `git filter-repo`, before any remote existed. `record_session.sh` now hashes the BSSID at
-  capture time, and `.githooks/pre-commit` refuses to commit MAC addresses or anything in the
-  local deny-list. Enable it with `git config core.hooksPath .githooks`.
-  This is a **documented exception to the append-only rule** for `data/`: a scripted,
-  date-stamped rewrite, not a hand edit, touching only metadata — never `csi.csv`, so every
+- **Publication hygiene (2026-11-27).** The repository is prepared for a public remote. Across
+  all commits: the AP BSSID and SSID are opaque labels (`ap_1`, `ssid_1`) rather than hashes —
+  a hash of a MAC is still testable against a candidate list of nearby BSSIDs; the LAN address
+  is `192.168.1.x`; absolute paths are `<repo>`; the operator line is `operator@workstation`;
+  and every commit is authored as `dobval <100198047+dobval@users.noreply.github.com>`.
+  `record_session.sh` writes only the opaque label, and `.githooks/pre-commit` plus
+  `.githooks/commit-msg` refuse MAC addresses and anything in the local deny-list. Enable with
+  `git config core.hooksPath .githooks`.
+  This is a **documented exception to the append-only rule** for `data/`: scripted,
+  date-stamped rewrites, not hand edits, touching metadata only — never `csi.csv`, so every
   `manifest.sha256` still verifies.
 - **The untracked raw captures still contain the real BSSID**: every `csi.csv` row carries it
   and the 6 h soak log contains it 2.3 million times. They are gitignored and must never be

@@ -52,7 +52,7 @@ usage() { sed -n '2,20p' "$SELF" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 # ----------------------------------------------------------------- args
 LABEL=""; PLACEMENT="A"; DURATION=300; COUNTDOWN=15; COUNTDOWN_GIVEN=0
 ALTERNATE=0; CYCLES=0; GUARD=10
-COND_A="empty_room"; COND_B="person_in_zone_static"
+COND_A="empty_room"; COND_B="person_in_zone_static"; AP_LABEL="ap_1"
 DIST_CM=""; HEIGHT_CM=""; SUBJECT=""; NOTES=""; PORT="/dev/ttyACM0"
 OUTDIR="$ROOT/data"; FOREGROUND=0; RESET=1; INNER_DIR=""
 MOUNT="taped"; CABLE="pc-end"
@@ -66,6 +66,7 @@ while [[ $# -gt 0 ]]; do
     --alternate)    ALTERNATE="${2:?}"; shift 2 ;;
     --cycles)       CYCLES="${2:?}"; shift 2 ;;
     --guard)        GUARD="${2:?}"; shift 2 ;;
+    --ap-label)     AP_LABEL="${2:?}"; shift 2 ;;
     --condition-a)  COND_A="${2:?}"; shift 2 ;;
     --condition-b)  COND_B="${2:?}"; shift 2 ;;
     --distance-cm)  DIST_CM="${2:?}"; shift 2 ;;
@@ -158,14 +159,11 @@ if [[ -n "$INNER_DIR" ]]; then
 
   if [[ -s "$INNER_DIR/csi.csv" ]]; then
     ( cd "$INNER_DIR" && sha256sum csi.csv > manifest.sha256 )
-    # Publication hygiene: the raw BSSID stays in csi.csv (untracked); the
-    # human-readable metadata only ever gets a stable hash, so two sessions are
-    # still comparable without publishing the AP's MAC.
-    bssid="$(awk -F, '/^CSI_DATA,/{print $3; exit}' "$INNER_DIR/csi.csv")"
-    if [[ -n "$bssid" ]]; then
-      bssid_id="bssid_$(printf '%s' "$bssid" | tr 'A-F' 'a-f' | sha256sum | cut -c1-8)"
-      echo "- AP identifier: \`$bssid_id\` (BSSID hashed at capture time)" >> "$INNER_DIR/session.md"
-    fi
+    # Publication hygiene: never write the AP's MAC into metadata. An opaque
+    # label carries no information about the hardware, and unlike a hash there is
+    # nothing to test against a candidate list of nearby BSSIDs. The MAC stays
+    # where it is needed - in csi.csv, which is never committed.
+    echo "- AP identifier: \`$AP_LABEL\` (opaque label; MAC only in csi.csv)" >> "$INNER_DIR/session.md"
     rows="$(grep -c '^CSI_DATA,' "$INNER_DIR/csi.csv" || true)"
     if [[ "${rows:-0}" -eq 0 ]]; then
       echo "- **INVALID: zero CSI rows captured — do not label this session.**" >> "$INNER_DIR/session.md"
@@ -264,6 +262,7 @@ RESET="$RESET"
 MOUNT="$MOUNT"
 CABLE="$CABLE"
 COUNTDOWN="$COUNTDOWN"
+AP_LABEL="$AP_LABEL"
 ALTERNATE="$ALTERNATE"
 CYCLES="$CYCLES"
 GUARD="$GUARD"

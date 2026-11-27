@@ -131,3 +131,24 @@ python3 tools/probe_breathing.py data/<session> # breathing-band spectrum
 ESP-IDF v5.3.6, esp-csi `8633d67`, GCC 13.2.0. Do not upgrade mid-campaign: a
 toolchain change is a rig change, and the empty baseline must be re-recorded. The
 full pin list lives at the top of `STATE.md`.
+
+## Data availability
+
+The repository carries everything needed to reproduce the analysis: capture code,
+session protocols, per-session statistics, SHA-256 manifests and the 1 Hz clock
+sidecars. The raw CSI itself is **not** published — it is ~150 MB per hour, and
+every row carries the access point's hardware address. Raw captures are retained
+by the author and can be shared on request for examination.
+
+## Ethics
+
+The only human subject is the author. No cameras, no third-party participants, and
+no personal data beyond the author's own occupancy of the room. Access point
+identifiers were replaced with opaque labels for publication, and a pre-commit hook
+blocks hardware addresses from being added in future.
+
+## Licence
+
+- **Code and tooling** (`tools/`, `firmware/`): MIT — see `LICENSE`.
+- **Documentation and written analysis** (`README.md`, `STATE.md`, `RESEARCH.md`,
+  `docs/`, `results/`, `sessions/`): CC BY 4.0 — see `LICENSE-docs`.
