@@ -4,8 +4,31 @@ BEng thesis project. The question: **what can one ESP32-S3 infer about people in
 room from Channel State Information taken from ordinary router pings?** No second
 inference node, no modified AP, no CSI tool on the router.
 
-The work is a ladder of three claims. Each rung is a standalone deliverable, and
-failure at a higher rung erases nothing below it.
+## Background
+
+Wi-Fi signals fill a room and reflect off everything in it, people included. A
+receiver can measure how the channel to the transmitter is altered — subcarrier by
+subcarrier, about a hundred times a second. That measurement is **Channel State
+Information (CSI)**, and it turns ordinary Wi-Fi into a sensing modality: presence,
+motion, even breathing, without a wearable, a camera, or any cooperation from the
+person. Working without a camera is also the privacy argument.
+
+Most published systems need two or more devices, or a modified access point.
+Detecting a *stationary* person with a single cheap receiver against a stock home
+router is not established — the strongest open-source ESP32 implementation
+explicitly declines to claim it. IEEE 802.11bf, the first Wi-Fi sensing standard,
+reached final approval in 2025, which makes "what can commodity hardware actually
+do?" a timely question rather than a solved one.
+
+The long-term aim is **inference on the microcontroller itself**: a few-kilobyte
+quantised model producing a decision on-device, so no raw CSI stream ever leaves
+the chip. That is the Edge AI / TinyML argument — the measurement stream is
+~44 KB/s, while a decision is a few bytes.
+
+## Claim ladder
+
+The work is a ladder of three claims, each a standalone deliverable. Failure at a
+higher rung erases nothing below it.
 
 | Rung | Claim | Status |
 |---|---|---|
