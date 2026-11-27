@@ -158,8 +158,14 @@ if [[ -n "$INNER_DIR" ]]; then
 
   if [[ -s "$INNER_DIR/csi.csv" ]]; then
     ( cd "$INNER_DIR" && sha256sum csi.csv > manifest.sha256 )
+    # Publication hygiene: the raw BSSID stays in csi.csv (untracked); the
+    # human-readable metadata only ever gets a stable hash, so two sessions are
+    # still comparable without publishing the AP's MAC.
     bssid="$(awk -F, '/^CSI_DATA,/{print $3; exit}' "$INNER_DIR/csi.csv")"
-    [[ -n "$bssid" ]] && echo "- AP BSSID observed: $bssid" >> "$INNER_DIR/session.md"
+    if [[ -n "$bssid" ]]; then
+      bssid_id="bssid_$(printf '%s' "$bssid" | tr 'A-F' 'a-f' | sha256sum | cut -c1-8)"
+      echo "- AP identifier: \`$bssid_id\` (BSSID hashed at capture time)" >> "$INNER_DIR/session.md"
+    fi
     rows="$(grep -c '^CSI_DATA,' "$INNER_DIR/csi.csv" || true)"
     if [[ "${rows:-0}" -eq 0 ]]; then
       echo "- **INVALID: zero CSI rows captured — do not label this session.**" >> "$INNER_DIR/session.md"

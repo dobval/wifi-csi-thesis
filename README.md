@@ -75,6 +75,15 @@ committed:
   session can still be re-aligned to wall clock without the payload
 - `sdkconfig` is gitignored because it contains the Wi-Fi password
 
+## If you clone this repo
+
+```bash
+git config core.hooksPath .githooks   # blocks MAC addresses and the SSID
+```
+
+The hook is committed; the deny-list it optionally reads is not. Raw captures also
+contain the access point's MAC in every row, which is why they stay out of git.
+
 The repository is therefore ~600 KB of text: tooling, protocols, statistics and
 analysis. Raw captures live on the rig machine and are catalogued by
 `sessions/INDEX.md` with a SHA-256 manifest per session.

@@ -60,6 +60,17 @@ Do not upgrade these mid-campaign; a toolchain change is a rig change (re-record
 - Ignored: ESP-IDF build artifacts (`build/`, `managed_components/`, `*.bin`), per-machine
   `sdkconfig*` (holds Wi-Fi credentials), Python caches, `.vscode/`.
 - `*.csv` is marked `-text` in `.gitattributes` so raw captures are never line-ending-normalised.
+- **Publication hygiene (2026-11-27).** The AP BSSID, SSID and LAN address were replaced with
+  stable hashes (`ap_1`, `ssid_1`, `192.168.1.x`) across all 29 commits with
+  `git filter-repo`, before any remote existed. `record_session.sh` now hashes the BSSID at
+  capture time, and `.githooks/pre-commit` refuses to commit MAC addresses or anything in the
+  local deny-list. Enable it with `git config core.hooksPath .githooks`.
+  This is a **documented exception to the append-only rule** for `data/`: a scripted,
+  date-stamped rewrite, not a hand edit, touching only metadata — never `csi.csv`, so every
+  `manifest.sha256` still verifies.
+- **The untracked raw captures still contain the real BSSID**: every `csi.csv` row carries it
+  and the 6 h soak log contains it 2.3 million times. They are gitignored and must never be
+  pushed to a public remote.
 
 ## Hardware / rig A
 - ESP32-S3-DevKitC-1 clone, WROOM-1 N16R8, chip rev v0.2, 240 MHz. On-module PCB antenna

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# commit-msg: the same guard as pre-commit, applied to the message itself.
+#
+# This exists because a commit message describing a redaction naturally wants to
+# quote the value being redacted. It did exactly that on the first attempt.
+#
+#   ALLOW_IDENTIFIERS=1 git commit ...   to override deliberately
+set -euo pipefail
+
+[[ "${ALLOW_IDENTIFIERS:-0}" == "1" ]] && exit 0
+
+msg="$1"
+[[ -f "$msg" ]] || exit 0
+status=0
+
+mac='([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}'
+if grep -qEI "$mac" "$msg" 2>/dev/null; then
+  echo "commit-msg: the message contains a MAC address." >&2
+  echo "  describe it (e.g. 'the AP BSSID'), never quote it." >&2
+  status=1
+fi
+
+deny="$(git rev-parse --show-toplevel)/.githooks/deny.txt"
+if [[ -f "$deny" ]]; then
+  while IFS= read -r pat; do
+    [[ -z "$pat" || "$pat" == \#* ]] && continue
+    if grep -qF -- "$pat" "$msg" 2>/dev/null; then
+      # Deliberately does not echo the matched text.
+      echo "commit-msg: the message contains a denied identifier." >&2
+      status=1
+    fi
+  done < "$deny"
+fi
+
+(( status )) && exit 1
+exit 0

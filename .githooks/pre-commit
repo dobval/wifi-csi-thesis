@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# pre-commit: refuse to commit anything that could identify the room.
+#
+# A BSSID is a location key — Wi-Fi geolocation databases resolve it to
+# coordinates without any prior knowledge. Once a value like that is pushed it
+# lives in forks and caches forever, so this blocks it locally instead.
+#
+# Blocks:
+#   1. MAC addresses (any 6-octet colon-separated form)
+#   2. literal strings listed in .githooks/deny.txt (gitignored, for the SSID)
+#
+# Escape hatch when a false positive is genuinely fine:
+#   ALLOW_IDENTIFIERS=1 git commit ...
+#
+# Install with:  git config core.hooksPath .githooks
+set -euo pipefail
+
+[[ "${ALLOW_IDENTIFIERS:-0}" == "1" ]] && exit 0
+
+files=$(git diff --cached --name-only --diff-filter=ACM)
+[[ -z "$files" ]] && exit 0
+
+status=0
+
+# 1. MAC addresses
+mac='([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}'
+hits=$(printf '%s\n' "$files" | xargs -r grep -nEI "$mac" 2>/dev/null || true)
+if [[ -n "$hits" ]]; then
+  echo "pre-commit: refusing to commit a MAC address." >&2
+  echo "$hits" | sed 's/^/  /' >&2
+  status=1
+fi
+
+# 2. Local deny-list (the SSID and anything else machine-specific)
+deny="$(git rev-parse --show-toplevel)/.githooks/deny.txt"
+if [[ -f "$deny" ]]; then
+  while IFS= read -r pat; do
+    [[ -z "$pat" || "$pat" == \#* ]] && continue
+    h=$(printf '%s\n' "$files" | xargs -r grep -nF -- "$pat" 2>/dev/null || true)
+    if [[ -n "$h" ]]; then
+      echo "pre-commit: refusing to commit a denied identifier." >&2
+      echo "$h" | sed 's/^/  /' >&2
+      status=1
+    fi
+  done < "$deny"
+fi
+
+if (( status )); then
+  echo >&2
+  echo "Replace it with a stable hash (sha256 prefix), or set" >&2
+  echo "ALLOW_IDENTIFIERS=1 to override deliberately." >&2
+  exit 1
+fi

@@ -31,9 +31,16 @@ venv/
 *.swp
 *~
 
+# ---------------------------------------------------------------- Publication hygiene
+# Local deny-list read by .githooks/pre-commit. Contains the real SSID, so it is
+# machine-local by design.
+.githooks/deny.txt
+
 # ---------------------------------------------------------------- Raw captures
 # Raw CSI logs are ~150 MB per hour (960 MiB for the 6h23m soak). Never commit
 # them to plain git: 58 GB of free disk is fine, a 1 GB-committing history is not.
+# Every csi.csv row also carries the AP's BSSID, and the 6 h soak log contains it
+# 2.3 million times. Raw captures must never be pushed to a public remote.
 # Keep raw captures on disk + backup, and commit instead:
 #   data/<session>/session.md      (protocol + metadata)
 #   data/<session>/manifest.sha256 (integrity proof)
