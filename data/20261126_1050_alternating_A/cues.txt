@@ -1,0 +1,21 @@
+ALTERNATING SCHEDULE — 5 cycles x 60s per block (600s)
+
+Contrast: empty_room  <->  person_in_zone_static
+
+Start the phone timer the instant you press Enter. The measurement begins
+55s + ~5s boot after that, i.e. at phone time ~60s, so:
+  - block boundaries are phone readings 120s, 180s, ...
+  - the first 10s and last 10s of each block are discarded as transition
+  - floor marks and posture: docs/layout.md
+
+block  condition                ready by   what to do
+1      empty_room               60s        out of the room, door closed, nobody else in
+2      person_in_zone_static    120s       stand at P1 (marked mid-point of the AP-node line), stay still
+3      empty_room               180s       out of the room, door closed, nobody else in
+4      person_in_zone_static    240s       stand at P1 (marked mid-point of the AP-node line), stay still
+5      empty_room               300s       out of the room, door closed, nobody else in
+6      person_in_zone_static    360s       stand at P1 (marked mid-point of the AP-node line), stay still
+7      empty_room               420s       out of the room, door closed, nobody else in
+8      person_in_zone_static    480s       stand at P1 (marked mid-point of the AP-node line), stay still
+9      empty_room               540s       out of the room, door closed, nobody else in
+10     person_in_zone_static    600s       stand at P1 (marked mid-point of the AP-node line), stay still
