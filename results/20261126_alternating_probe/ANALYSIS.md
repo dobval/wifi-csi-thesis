@@ -148,3 +148,48 @@ Two honest options:
    producing large and frequency-selective changes. That is where CSI should
    separate from RSSI — but the detection zone is then the antenna's near field,
    not the middle of the room.
+
+---
+
+## Near-field position — `20261127_1124_alternating_A` (600 s, 5 pairs)
+
+P1 moved from ~120 cm (mid-point of the 260 cm link) to **~80 cm from the node**.
+Same protocol, 10/10 blocks, 60 283 rows, 0 skipped.
+
+| cycle | empty | person | delta |
+|---|---|---|---|
+| 1 | 9.931 | 7.709 | −2.20 dB |
+| 2 | 8.423 | 8.148 | −0.29 dB |
+| 3 | 8.425 | 7.759 | −0.72 dB |
+| 4 | 8.441 | 6.899 | −1.75 dB |
+| 5 | 8.528 | 7.616 | −0.98 dB |
+
+**5/5 negative**, mean **−1.19 dB**, sd 0.77, **t = −3.27 on 4 df (p ≈ 0.03)**,
+d = 1.46. At that effect size ~4 pairs suffice: this is the first statistically
+significant L3 result.
+
+The sign also flipped. At the mid-point the person *raised* the level (phase
+cancellation); at 80 cm they consistently *lower* it. That is shadowing dominating
+over cancellation, which is what moving into the antenna's near field should do.
+
+### But RSSI still ties CSI
+
+| feature | empty | person | AUC |
+|---|---|---|---|
+| gain (mean \|H\|) | 8.45 | 7.63 | **1.000** |
+| gain-normalised temporal sd | — | — | 0.600 |
+| RSSI | −38.31 | −39.49 | **1.000** |
+| shape correlation, empty↔person | | | **r = 0.967** |
+
+The perturbation is still almost entirely frequency-flat: the subcarrier profile
+correlates at 0.967 across conditions, and dividing out the gain leaves AUC 0.600.
+RSSI separates the conditions **perfectly**. So at 80 cm this is a reliable
+detector, but it is an RSSI-level detector — CSI is not contributing.
+
+### The baseline was quieter this run
+
+Empty blocks spread **1.51 dB** overall, and only **0.11 dB** if block 1 is set
+aside (9.931 vs 8.42–8.53). Block 1 is an outlier, most likely residual transit at
+the very start; it is the least trustworthy block in any session because the
+subject has only just left. Excluding cycle 1 keeps the result: mean −0.94 dB,
+t = −3.10 on 3 df.
