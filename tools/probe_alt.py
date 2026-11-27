@@ -136,7 +136,7 @@ def main() -> int:
         sched = [b for b in sched if lo <= b["block"] <= hi]
         print(f"restricted to blocks {lo}-{hi} ({len(sched)} blocks)")
 
-    rows, feats, skipped = [], [], 0
+    rows, feats, skipped, shapes, nsd = [], [], 0, [], []
     for b in sched:
         lo, hi = b["t0"] + b["guard"], b["t1"] - b["guard"]
         m = (t_s >= lo) & (t_s < hi)
@@ -144,6 +144,9 @@ def main() -> int:
             skipped += 1
             continue
         feats.append(block_feats(amp, rssi, m))
+        mu = amp[m].mean(0)
+        shapes.append(mu / mu.mean())                 # gain-free subcarrier profile
+        nsd.append(amp[m].std(0).mean() / mu.mean())  # gain-free temporal variability
         rows.append({"block": b["block"], "cond": b["cond"], "n": int(m.sum()),
                      "meanH": float(amp[m].mean()), "rssi": float(rssi[m].mean()),
                      "t0": b["t0"], "t1": b["t1"]})
@@ -194,6 +197,27 @@ def main() -> int:
         print("        separates them perfectly on at least one of the features tested, so")
         print("        'within null' means the test has no power - not that the effect is")
         print("        absent. Use the paired t on per-cycle deltas instead.")
+
+    # ---- is the effect structural, or just a level shift?
+    S = np.asarray(shapes)
+    C = np.corrcoef(S)
+    def cpairs(pred):
+        return [C[i, j] for i in range(len(S)) for j in range(i + 1, len(S))
+                if pred(isE[i], isE[j])]
+    ee = cpairs(lambda x, y: x and y)
+    pp = cpairs(lambda x, y: (not x) and (not y))
+    ep = cpairs(lambda x, y: x != y)
+    gain = np.array([r["meanH"] for r in rows])
+    nsd_a = np.asarray(nsd)
+    print("\n== shape vs gain: is the perturbation structural? ==")
+    print(f"  shape correlation   empty-empty {np.mean(ee):.3f}   "
+          f"person-person {np.mean(pp):.3f}   across {np.mean(ep):.3f}")
+    print(f"  gain                        AUC {auc_1d(gain[isE], gain[~isE]):5.3f}")
+    print(f"  gain-normalised variability AUC {auc_1d(nsd_a[isE], nsd_a[~isE]):5.3f}")
+    print("  A structural effect drops the across-condition correlation and lifts the")
+    print("  normalised AUC above ~0.7. If the correlation stays ~0.98 and the normalised")
+    print("  AUC stays near 0.5, the perturbation is frequency-flat gain and CSI is adding")
+    print("  nothing over RSSI at this geometry.")
 
     # ---- the null from inside the same recording
     idxE = np.where(isE)[0]
